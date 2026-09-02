@@ -12,7 +12,7 @@ No dedicated service account is created. The service runs as root on Linux and m
 
 Channel scripts execute arbitrary code inside the server JVM and inherit whatever privileges the service holds. That is fine for evaluation and development. A production host should run the engine under an unprivileged account with only the access it needs.
 
-A guide to running under a normal user account, covering file permissions and service definitions, will follow shortly.
+A guide to securing an installation, covering the service account, permissions on `conf`, `appdata` and the executable directories, and service definitions, will follow shortly.
 :::
 
 On Windows the service appears in the Services manager (`services.msc`) as **Open Integration Engine Service**. Start it, stop it, or switch it between automatic and manual startup there, like any other Windows service. On Linux and macOS it is managed from a terminal.

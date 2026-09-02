@@ -48,10 +48,12 @@ You should see a progress bar that will load the files necessary to launch the O
 ## Logging in
 
 ::: info
-If you use a new instance, the default credentials are:
+On 4.6.0 a new instance starts with:
 
 * login: **admin**
 * password: **admin**
+
+A future release replaces this with a password generated on first boot.
 :::
 
 Enter your credentials and click `Login` when the login screen appears. After a brief loading screen, you will see the OIE dashboard.
@@ -69,7 +71,7 @@ And click on `Finish`
 It's finished. Now you can start to use your OIE server.
 
 ::: warning Every account is an administrator
-The engine ships with an authorization controller that approves every operation for any authenticated user. `DefaultAuthorizationController.isUserAuthorized` returns `true` unconditionally and `doesUserHaveChannelRestrictions` returns `false`, so there are no roles and no per-channel restrictions out of the box. Any account you create can edit and deploy channels, read message content, and change server settings.
+All users are administrators by default, with privilege to write and execute channel scripts on the server. Grant access only to users who should be able to author and execute scripts, or install an RBAC plugin to create low-privileged roles.
 
-The controller can be substituted. [Role Based Access Control](https://github.com/diridium-com/role-based-access-control) is a community extension that replaces it with roles and per-channel grants, and it works in both administrators.
+[Role Based Access Control](https://github.com/diridium-com/role-based-access-control) is a community extension that replaces the default authorization controller with roles and per-channel grants, and it works in both administrators.
 :::
