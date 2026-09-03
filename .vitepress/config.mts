@@ -1,15 +1,4 @@
 import {defineConfig} from 'vitepress'
-import fs from 'node:fs'
-import path from 'node:path'
-
-const SUBMODULES_ROOT = path.resolve(__dirname, '../docs')
-
-// Generate sidebar items from /engine
-function sidebarFromRemote(remote: string) {
-  const filePath = path.join(SUBMODULES_ROOT, remote, 'docs.json')
-  const data = fs.readFileSync(filePath, 'utf-8')
-  return JSON.parse(data)
-}
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -21,8 +10,9 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Documentation', link: '/engine' },
-      { text: 'Examples', link: '/examples' },
+      { text: 'Documentation', link: '/engine/' },
+      { text: 'Launchers', link: '/launchers/' },
+      { text: 'Examples', link: '/examples/' },
     ],
 
     logo: 'https://raw.githubusercontent.com/OpenIntegrationEngine/governance/refs/heads/main/branding/logos/oie_logo_only_white_background.svg',
@@ -38,31 +28,23 @@ export default defineConfig({
 
     lastUpdated: true,
 
+    outline: [2, 3],
+
     sidebar: [
       {
         text: 'Engine',
         collapsed: false,
         items: [
-          { text: 'Overview', link: 'engine' },
-          { text: 'Getting started', link: 'engine/getting_started' },
-          { text: 'Plugin Guide', link: 'engine/plugins' },
-          { text: 'Contributing', link: 'engine/contributing' },
+          { text: 'Overview', link: '/engine/' },
+          { text: 'Installation', link: '/engine/installation' },
+          { text: 'Server Process Management', link: '/engine/server_process_management' },
+          { text: 'Accessing the Administrator', link: '/engine/accessing_the_administrator' },
+          { text: 'Plugin Guide', link: '/engine/plugins' },
+          { text: 'Contributing', link: '/engine/contributing' },
         ]
       },
-      {
-        text: 'Launchers',
-        collapsed: false,
-        items: [
-          { text: 'Overview', link: 'launchers' },
-        ]
-      },
-      {
-        text: 'Examples',
-        collapsed: false,
-        items: [
-          { text: 'Overview', link: 'examples' },
-        ]
-      },
+      { text: 'Launchers', link: '/launchers/' },
+      { text: 'Examples', link: '/examples/' },
     ],
 
     socialLinks: [

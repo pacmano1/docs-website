@@ -12,10 +12,10 @@ hero:
   actions:
     - theme: brand
       text: Documentation
-      link: /engine
+      link: /engine/
     - theme: alt
       text: Examples
-      link: /examples
+      link: /examples/
 
 features:
   - title: Open Source

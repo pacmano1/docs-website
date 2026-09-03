@@ -17,7 +17,11 @@ To manage plugins in Open Integration Engine:
 
 1. Launch and login to the **OIE Administrator Client**
 2. Select **Extensions** from the **Engine** sidebar menu
-4. You will see a list of all installed plugins along with their status and other details.
+3. You will see a list of all installed plugins along with their status and other details.
+
+This screen installs, enables, disables and uninstalls extensions. It is not where an
+extension is configured. A plugin that ships a settings panel adds its own tab under
+**Engine** > **Settings**, named by the plugin, and that is where its configuration lives.
 
 ## Installing Plugins
 
@@ -122,9 +126,9 @@ services:
 
 ### Via the Administrator UI
 
-1. Navigate to **Settings** → **Extensions**
-2. Locate the plugin you want to remove
-3. Click the **Uninstall** button next to the plugin
+1. Select **Extensions** from the **Engine** sidebar menu
+2. Select the extension you want to remove in the **Installed Connectors** or **Installed Plugins** table
+3. Select **Uninstall Extension** from the **Extension Tasks** menu
 4. Confirm the uninstallation when prompted
 5. **Restart** the OIE Server
 
@@ -149,16 +153,16 @@ You can temporarily disable plugins without uninstalling them:
 
 ### To Disable a Plugin
 
-1. Navigate to **Settings** → **Extensions**
-2. Find the plugin in the list
-3. Toggle the **Enabled** switch to **Off**
+1. Select **Extensions** from the **Engine** sidebar menu
+2. Select the extension in the **Installed Connectors** or **Installed Plugins** table
+3. Select **Disable Extension** from the **Extension Tasks** menu
 4. **Restart** the OIE Server
 
 ### To Enable a Plugin
 
-1. Navigate to **Settings** → **Extensions**
-2. Find the disabled plugin in the list
-3. Toggle the **Enabled** switch to **On**
+1. Select **Extensions** from the **Engine** sidebar menu
+2. Select the disabled extension in the **Installed Connectors** or **Installed Plugins** table
+3. Select **Enable Extension** from the **Extension Tasks** menu
 4. **Restart** the OIE Server
 
 ::: tip
@@ -194,7 +198,7 @@ Plugin authors must specify compatible versions in their plugin. Currently, plug
 
 If the server fails to start after installing a plugin:
 
-1. Check the server logs in `logs/oie-server.log` for error messages
+1. Check the server log in `logs/mirth.log` for error messages
 2. Try starting the server with the plugin disabled:
    ::: code-group
    ```bash [Linux/macOS]
@@ -210,7 +214,7 @@ If the server fails to start after installing a plugin:
 
 ### Plugin Features Not Working
 
-1. Verify the plugin is **enabled** in Settings → Extensions
+1. Verify the extension shows **Enabled** in the **Status** column under **Engine** → **Extensions**
 2. Check for JavaScript console errors in the Administrator
 3. Review server logs for runtime errors
 4. Ensure all plugin dependencies are installed
