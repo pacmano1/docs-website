@@ -11,7 +11,7 @@ Open Integration Engine supports a plugin architecture that enables:
 - Additional data types and formats
 - Custom UI components in the Administrator
 
-## Accessing the Extensions/Plugins Section
+## Accessing the extensions/plugins section
 
 To manage plugins in Open Integration Engine:
 
@@ -23,7 +23,7 @@ This screen installs, enables, disables and uninstalls extensions. It is not whe
 extension is configured. A plugin that ships a settings panel adds its own tab under
 **Engine** > **Settings**, named by the plugin, and that is where its configuration lives.
 
-## Installing Plugins
+## Installing plugins
 
 ### Installing via the Administrator UI
 
@@ -42,7 +42,7 @@ The easiest way to install a plugin is through the Administrator interface:
 Always restart the OIE Server after installing or uninstalling plugins to ensure changes take effect.
 :::
 
-### Manual Installation
+### Manual installation
 
 For environments where UI-based installation is not feasible, you can install plugins manually:
 
@@ -69,11 +69,11 @@ For environments where UI-based installation is not feasible, you can install pl
    :::
 5. Start the OIE Server
 
-### Installing in the OIE Docker Container
+### Installing in the OIE Docker container
 
 When running OIE in a Docker container, you have several options for installing plugins:
 
-#### Example 1: Docker CLI with `custom-extensions` Volume Mount
+#### Example 1: Docker CLI with `custom-extensions` volume mount
 
 Mount a host directory containing plugin zip files to the container's `custom-extensions` directory. The container's entrypoint script will unzip and install them to the `extensions` directory prior to launching the server:
 
@@ -122,7 +122,7 @@ services:
 ```
 :::
 
-## Uninstalling Plugins
+## Uninstalling plugins
 
 ### Via the Administrator UI
 
@@ -132,7 +132,7 @@ services:
 4. Confirm the uninstallation when prompted
 5. **Restart** the OIE Server
 
-### Manual Uninstallation
+### Manual uninstallation
 
 1. Stop the OIE Server
 2. Navigate to the `extensions/` directory
@@ -147,18 +147,18 @@ services:
    :::
 4. Start the OIE Server
 
-## Enabling and Disabling Plugins
+## Enabling and disabling plugins
 
 You can temporarily disable plugins without uninstalling them:
 
-### To Disable a Plugin
+### To disable a plugin
 
 1. Select **Extensions** from the **Engine** sidebar menu
 2. Select the extension in the **Installed Connectors** or **Installed Plugins** table
 3. Select **Disable Extension** from the **Extension Tasks** menu
 4. **Restart** the OIE Server
 
-### To Enable a Plugin
+### To enable a plugin
 
 1. Select **Extensions** from the **Engine** sidebar menu
 2. Select the disabled extension in the **Installed Connectors** or **Installed Plugins** table
@@ -169,9 +169,9 @@ You can temporarily disable plugins without uninstalling them:
 Disabling plugins is useful for troubleshooting. If you suspect a plugin is causing issues, disable it and restart the server to confirm.
 :::
 
-## Plugin Compatibility and Version Requirements
+## Plugin compatibility and version requirements
 
-### Checking Compatibility
+### Checking compatibility
 
 Before installing a plugin, verify:
 
@@ -183,9 +183,9 @@ Before installing a plugin, verify:
 Plugin authors must specify compatible versions in their plugin. Currently, plugins cannot support a range of versions.
 :::
 
-## Troubleshooting Common Issues
+## Troubleshooting common issues
 
-### Plugin Not Appearing After Installation
+### Plugin not appearing after installation
 
 **Possible causes and solutions:**
 
@@ -194,7 +194,7 @@ Plugin authors must specify compatible versions in their plugin. Currently, plug
 3. **File permissions**: Ensure the OIE process has read access to the plugin files
 4. **Corrupted archive**: Re-download and reinstall the plugin
 
-### Plugin Causing Server Startup Failures
+### Plugin causing server startup failures
 
 If the server fails to start after installing a plugin:
 
@@ -212,14 +212,14 @@ If the server fails to start after installing a plugin:
    :::
 3. If the server starts successfully, the plugin is likely incompatible
 
-### Plugin Features Not Working
+### Plugin features not working
 
 1. Verify the extension shows **Enabled** in the **Status** column under **Engine** → **Extensions**
 2. Check for JavaScript console errors in the Administrator
 3. Review server logs for runtime errors
 4. Ensure all plugin dependencies are installed
 
-### Common Error Messages
+### Common error messages
 
 | Error | Cause | Solution |
 |-------|-------|----------|
@@ -227,26 +227,18 @@ If the server fails to start after installing a plugin:
 | `NoSuchMethodError` | Version mismatch | Use compatible plugin version |
 | `SecurityException` | Permission denied | Check file permissions |
 
-## Plugin Development Resources
+## Plugin development resources
 
 For those interested in developing plugins for Open Integration Engine:
 
-### Key Resources
+### Key resources
 
 - **Plugin Author's Guide**: [mirth-plugin-guide](https://github.com/kpalang/mirth-plugin-guide) - Comprehensive guide for plugin development on OIE, Mirth Connect (Open Source Versions) and BridgeLink.
 - **Sample Plugin**: [mirth-sample-plugin](https://github.com/kpalang/mirth-sample-plugin) - A working example plugin to use as a template for OIE, Mirth Connect (Open Source Versions) and BridgeLink.
 
-## Best Practices
+## See also
 
-1. **Always backup** your OIE configuration before installing new plugins
-2. **Test in non-production** environments first
-3. **Keep plugins updated** to receive bug fixes and security patches
-4. **Review plugin source code** when possible, especially for plugins handling sensitive data
-5. **Document installed plugins** for your team and disaster recovery procedures
-6. **Monitor server logs** after installing new plugins for any issues
-
-## See Also
-
+- [Extension Catalog](./extension_catalog.md), the bundled and community extensions
 - [Contributing to Open Integration Engine](./contributing.md)
 - [OIE Docker Hub](https://hub.docker.com/u/openintegrationengine)
 - [OIE GitHub Repository](https://github.com/OpenIntegrationEngine/engine)

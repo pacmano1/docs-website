@@ -14,7 +14,7 @@ The OIE Server operates as a completely self-contained application and does not 
 
 ### Java requirements
 
-The Open Integration Engine requires Java 17+ to work.
+The Open Integration Engine requires Java 17+ to work. The server starts with a 256 MB heap, set in `conf/base_includes.vmoptions`. See [JVM options](./server_configuration.md#jvm-options) for raising it.
 
 ### Database requirements
 
@@ -26,6 +26,8 @@ For production deployments, it is recommended to use only database versions curr
 * MySQL / MariaDB
 * Oracle
 * SQL Server
+
+These requirements govern only the database the server itself stores configuration and messages in. Channels can read from and write to any JDBC-accessible database, whatever its type or version. See [Database Support](./database_support.md) for changing the backing database and [Connector Reference](./connector_reference.md#database-jdbc) for the channel-side drivers.
 
 ## Download and installation
 
@@ -75,4 +77,51 @@ The release also publishes `oie_unix_<version>.tar.gz` and `oie_windows-<arch>_<
 
 Nothing is registered with the service manager and nothing starts on boot, so you have to wire it into systemd, launchd or the Windows service manager yourself. Take this route when you want that control, or when you cannot give an installer administrative rights.
 
-Once it is installed, see [Server Process Management](./server_process_management.md).
+## Directory layout
+
+After installation the directory contains:
+
+```
+OIE_HOME/
+├── appdata/                # Application data
+│   ├── mirthdb/            # Embedded Derby database, when Derby is in use
+│   ├── keystore.jks        # TLS keystore
+│   ├── extension.properties        # Installed extension state
+│   ├── server.id           # Unique server identifier
+│   └── configuration.properties    # Configuration map, created at runtime
+├── cli-lib/                # CLI libraries
+├── client-lib/             # Administrator client libraries
+├── conf/                   # Configuration files
+│   ├── mirth.properties            # Main server configuration
+│   ├── dbdrivers.xml               # Database driver definitions
+│   ├── log4j2.properties           # Logging configuration
+│   ├── mirth-cli-config.properties # CLI defaults
+│   ├── base_includes.vmoptions     # Base JVM options, do not modify
+│   ├── custom.vmoptions            # Your JVM options
+│   └── default_modules.vmoptions   # Java module system options
+├── custom-lib/             # User-provided libraries, disabled by default
+├── docs/                   # Licenses and the user API javadocs
+├── extensions/             # Connectors and plugins
+├── logs/                   # Server log files
+├── public_html/            # Web server root
+├── public_api_html/        # REST API documentation
+├── server-launcher-lib/    # Launcher support libraries
+├── server-lib/             # Server libraries
+├── webapps/                # Web applications
+├── mirth-server-launcher.jar   # Server launcher JAR
+├── mirth-cli-launcher.jar      # CLI launcher JAR
+├── oiecommand              # CLI launcher
+├── oieserver               # Server launcher, foreground
+├── oieserver.ps1           # Server launcher script, Windows PowerShell
+├── oieservice              # Service launcher, registered with the OS
+├── oieserver.vmoptions     # JVM options for the foreground launcher
+└── oieservice.vmoptions    # JVM options for the service
+```
+
+Runtime-created directories such as `appdata/` are kept when the installer runs over an existing installation. See [Upgrade Guide](./upgrade_guide.md) before doing that on a server you care about.
+
+## Next steps
+
+* [Server Process Management](./server_process_management.md) to start it.
+* [Accessing the Administrator](./accessing_the_administrator.md) to log in.
+* [Database Support](./database_support.md) to move off Derby before production.

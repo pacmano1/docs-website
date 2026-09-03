@@ -13,15 +13,15 @@ After accepting the self-signed certificate in your browser, you will see this p
 
 From here there are two ways to administer the engine: a browser, or the desktop Administrator.
 
-## Web administrator
+## Web Administrator
 
 [Web Support](https://github.com/gibson9583/oie-web-support-plugin) is a community extension by Chris Gibson that installs a browser-based administrator into the engine's own web server. It works read/write against the same REST API as the desktop client, covering channel editing, deployment, and the message browser. It requires OIE 4.6.0.
 
-Install it as you would any other extension, described in the [plugin guide](./plugins.md), then restart the engine and open `https://<host>:8443/oie-webadmin/`. No launcher is involved.
+Install it as you would any other extension, described in the [plugin guide](./plugins.md), then restart the engine and open `https://<host>:8443/oie-webadmin/`. No launcher is involved. See [Web Administrator](./web_administrator.md) for what it covers.
 
 ## Desktop Administrator
 
-The desktop Administrator is a Java application and needs a launcher to start it. Copy the Administrator Launcher URL from the page above, then use one of the launchers below. See [Launchers](/launchers/) for the full list.
+The desktop Administrator is a Java application and needs a launcher to start it. Copy the Administrator Launcher URL from the page above, then use one of the launchers below. See [Launchers](/launchers/) for the full list, and [Desktop Administrator](./desktop_administrator.md) for a tour of the client.
 
 ### Ballista
 
