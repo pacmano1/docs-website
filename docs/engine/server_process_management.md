@@ -42,14 +42,18 @@ Starting and stopping the service needs elevation everywhere: an administrator P
 
 ## Starting it in the foreground
 
-`oieserver` runs the server in the foreground, streaming the log to your terminal. It also keeps writing `logs/mirth.log`. Use it for a first look, for development, and for debugging a server that will not start. In production the service does this job.
+`oieserver` runs the server in the foreground, streaming the log to your terminal. It also keeps writing `logs/mirth.log`. Use it for a first look, for development, and for debugging a server that will not start. In production the service does this job. Windows ships two foreground launchers that start the same server. Open a command prompt for `oieserver.exe`, or a PowerShell prompt for `oieserver.ps1`. A command prompt cannot run the PowerShell script.
 
 ::: code-group
 ```bash [Linux/macOS]
 cd <installation directory>
 sudo ./oieserver
 ```
-```powershell [Windows]
+```bat [Windows command prompt]
+cd <installation directory>
+oieserver.exe
+```
+```powershell [Windows PowerShell]
 cd <installation directory>
 .\oieserver.ps1
 ```
