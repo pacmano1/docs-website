@@ -1,4 +1,51 @@
+---
+title: Contributing
+description: How to propose a change to this documentation, and how to contribute to the engine itself
+---
+
 # Contributing to Open Integration Engine
+
+Thank you for your interest in contributing. There are two separate paths, and
+most people want the first one.
+
+## Contributing to this documentation
+
+The documentation lives in its own repository,
+[openintegrationengine/docs-website](https://github.com/OpenIntegrationEngine/docs-website),
+separate from the engine. Every page on this site is a Markdown file under
+`docs/`, and changes reach the site through a pull request. There is no edit
+button, because a page can be wrong in ways that read perfectly well, so
+changes are reviewed before they ship.
+
+To propose a change:
+
+1. Fork [openintegrationengine/docs-website](https://github.com/OpenIntegrationEngine/docs-website) and clone your fork.
+2. Install the tooling and start the site locally:
+   ```bash
+   bun install
+   bun run docs:dev
+   ```
+   The site serves at `http://localhost:5173/` and reloads as you edit.
+3. Edit the Markdown under `docs/`. The page you are reading is
+   `docs/engine/contributing.md`, and the same pattern holds for the rest.
+4. Run `bun run docs:build` before you push. The build fails on dead links, so
+   this catches the most common mistake.
+5. Open a pull request against `main` with a short description of what changed
+   and why.
+
+If you have found something wrong but do not want to write the fix, open an
+issue on the
+[documentation repository](https://github.com/OpenIntegrationEngine/docs-website/issues)
+instead. A precise bug report is worth more than a vague correction.
+
+**One thing worth knowing before you edit a code sample.** The samples on this
+site are checked against the engine source, not written from memory, because a
+sample that runs without error can still be wrong: it can log per message, leak
+a database connection on the failure path, or use a properties key the engine
+never reads. If you change a sample, say in the pull request how you verified
+it, and prefer citing the engine source over describing the intent.
+
+## Contributing to the engine
 
 Thank you for your interest in contributing to the **Open Integration Engine** project. Contributions are vital to the continued growth and success of the project, and we welcome all forms of participation, whether you are a developer, a documentation contributor, or a user providing feedback.
 

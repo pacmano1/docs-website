@@ -104,4 +104,4 @@ OIE uses a plugin architecture where connectors, data types, and other features 
 - **Server Plugins**. Background services and event handlers
 - **Transmission Mode Providers**. Frame-level protocol handling (e.g., MLLP)
 
-Extensions are loaded from the extensions directory when the engine starts. An extension can ship a desktop UI, a web UI, or both; the web administrator serves the web side. A growing set of open source extensions is available beyond those bundled with the engine. See [Plugins and Extensions](./extension_catalog.md).
+Extensions are loaded from the extensions directory when the engine starts. An extension can ship a desktop UI, a web UI, or both; the web administrator serves the web side. A growing set of open source extensions is available beyond those bundled with the engine. See the [Plugin Guide](./plugins.md), and [openintegrationengine.org/plugins](https://openintegrationengine.org/plugins/) for the community catalog.

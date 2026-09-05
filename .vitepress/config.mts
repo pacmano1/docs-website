@@ -13,14 +13,10 @@ export default defineConfig({
       { text: 'Documentation', link: '/engine/' },
       { text: 'Launchers', link: '/launchers/' },
       { text: 'Examples', link: '/examples/' },
+      { text: 'Contributing', link: '/engine/contributing' },
     ],
 
     logo: 'https://raw.githubusercontent.com/OpenIntegrationEngine/governance/refs/heads/main/branding/logos/oie_logo_only_white_background.svg',
-
-    editLink: {
-      text: 'Edit this page on GitHub',
-      pattern: 'https://github.com/openintegrationengine/docs-website/edit/main/docs/:path'
-    },
 
     search: {
       provider: 'local'
@@ -119,7 +115,6 @@ export default defineConfig({
         collapsed: true,
         items: [
           { text: 'Plugin Guide', link: '/engine/plugins' },
-          { text: 'Extension Catalog', link: '/engine/extension_catalog' },
         ]
       },
       {
@@ -128,6 +123,15 @@ export default defineConfig({
         items: [
           { text: 'Command Line Interface', link: '/engine/command_line_interface' },
           { text: 'REST API', link: '/engine/rest_api' },
+        ]
+      },
+      {
+        text: 'Help and Reference',
+        collapsed: true,
+        items: [
+          { text: 'Frequently Asked Questions', link: '/engine/frequently_asked_questions' },
+          { text: 'Troubleshooting', link: '/engine/troubleshooting' },
+          { text: 'Glossary', link: '/engine/glossary' },
         ]
       },
       { text: 'Contributing', link: '/engine/contributing' },

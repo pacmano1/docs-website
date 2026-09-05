@@ -166,4 +166,4 @@ See [Connector Reference](./connector_reference.md) for detailed documentation o
 | TCP Sender | TCP/MLLP |
 | Web Service Sender | SOAP/WSDL |
 
-Additional connectors are available as community extensions. See the [Extension Catalog](./extension_catalog.md).
+Additional connectors are available as community extensions, cataloged at [openintegrationengine.org/plugins](https://openintegrationengine.org/plugins/). See the [Plugin Guide](./plugins.md) for installing them.

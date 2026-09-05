@@ -5,7 +5,7 @@ description: Users, roles, and authentication
 
 # User Management
 
-OIE maintains its own user accounts for anyone who needs to log in, whether through either administrator, the Command Line Interface, or the REST API. The Users view lets you create, edit, and remove these accounts. Role-based access control is available as a [community extension](./extension_catalog.md#role-based-access-control) for restricting specific operations to designated user roles.
+OIE maintains its own user accounts for anyone who needs to log in, whether through either administrator, the Command Line Interface, or the REST API. The Users view lets you create, edit, and remove these accounts. Role-based access control is available as a [community extension](https://openintegrationengine.org/plugins/) for restricting specific operations to designated user roles.
 
 A password, including the admin account's, is reset from the [Command Line Interface](./command_line_interface.md) with `user changepw`.
 

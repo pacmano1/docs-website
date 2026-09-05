@@ -23,6 +23,16 @@ This screen installs, enables, disables and uninstalls extensions. It is not whe
 extension is configured. A plugin that ships a settings panel adds its own tab under
 **Engine** > **Settings**, named by the plugin, and that is where its configuration lives.
 
+That list is also the answer to "what does OIE already do out of the box." Most of
+what looks like core functionality is an extension loaded the same way a third-party
+plugin is: the connectors, the data types, the filter and transformer steps, the
+attachment viewers, and MLLP framing all ship as extensions and all appear here. You
+rarely need to think about that, since each is documented as the feature it provides
+rather than as the extension that carries it. It is worth knowing once, because it is
+why a new connector from a plugin behaves exactly like a bundled one.
+
+Community extensions are cataloged at [openintegrationengine.org/plugins](https://openintegrationengine.org/plugins/).
+
 ## Installing plugins
 
 ### Installing via the Administrator UI
@@ -229,9 +239,74 @@ If the server fails to start after installing a plugin:
 | `ClassNotFoundException` | A library the plugin declares in its metadata is missing from its folder | Look for `could not locate library` in `logs/mirth.log` and restore the file it names |
 | `NoSuchMethodError` | Version mismatch | Use compatible plugin version |
 
-## Plugin development resources
+## Developing extensions
 
-For those interested in developing plugins for Open Integration Engine:
+### Extension directory structure
+
+Each extension lives in its own subdirectory under `OIE_HOME/extensions/`. Connectors
+describe themselves with `source.xml`, `destination.xml`, or both, depending on which
+sides they provide, while plugins and data types use `plugin.xml`.
+
+```text
+extensions/
+├── http/                         # Connector example
+│   ├── http-server.jar           # Server-side classes
+│   ├── http-client.jar           # Client-side classes (downloaded to the Administrator)
+│   ├── http-shared.jar           # Shared classes (loaded on both sides)
+│   ├── source.xml                # Source connector metadata
+│   └── destination.xml           # Destination connector metadata
+└── datapruner/                   # Plugin example
+    ├── datapruner-server.jar
+    ├── datapruner-client.jar
+    ├── datapruner-shared.jar
+    └── plugin.xml                # Plugin metadata descriptor
+```
+
+Some extensions also carry a `lib/` subdirectory for third-party dependencies.
+Client-only extensions, such as the Mapper and Rule Builder steps, ship no server jar
+at all.
+
+### Extension metadata
+
+A metadata descriptor declares:
+
+- Extension name, author, and version
+- Server-side and client-side class names
+- Library JAR paths and their type (server, client, or shared)
+- API provider classes, meaning servlet interfaces and their implementations
+
+### Server-side extension points
+
+| Extension Type | Class/Interface |
+|---|---|
+| **Server Plugin** | `ServerPlugin` (interface) |
+| **Service Plugin** | `ServicePlugin` (interface, extends ServerPlugin) |
+| **Channel Plugin** | `ChannelPlugin` (interface, extends ServerPlugin) |
+| **Data Type** | `DataTypeServerPlugin` (abstract class) |
+| **Resource Plugin** | `ResourcePlugin` (interface, extends ServerPlugin) |
+| **Library Plugin** | `LibraryPlugin` (interface, extends ResourcePlugin) |
+| **Authorization Plugin** | `AuthorizationPlugin` (interface, extends ServerPlugin) |
+| **Transmission Mode** | `TransmissionModeProvider` (abstract class, implements ServerPlugin) |
+| **Code Template Plugin** | `CodeTemplateServerPlugin` (interface, extends ServerPlugin) |
+| **Multi-Factor Auth Plugin** | `MultiFactorAuthenticationPlugin` (abstract class, implements ServicePlugin) |
+
+All ten live in `com.mirth.connect.plugins`.
+
+### Building an extension
+
+1. Produce the server-side, client-side, or shared JARs the extension needs
+2. Write the metadata descriptor (`plugin.xml`, or `source.xml` and `destination.xml` for connectors)
+3. Package it into the extension directory layout
+4. Test against a running OIE instance
+
+Extensions are discovered at runtime, so one install serves both the
+[Desktop Administrator](./desktop_administrator.md) and the
+[Web Administrator](./web_administrator.md) with no separate web build. To add a
+browser interface, the server half stays as it is and you write only the web UI
+against the REST endpoints the extension already exposes. The web extension points
+and manifest format are documented in
+[PLUGINS.md](https://github.com/gibson9583/oie-web-client/blob/main/web-administrator/PLUGINS.md)
+in the web client repository.
 
 ### Key resources
 
@@ -240,7 +315,6 @@ For those interested in developing plugins for Open Integration Engine:
 
 ## See also
 
-- [Extension Catalog](./extension_catalog.md), the bundled and community extensions
 - [Contributing to Open Integration Engine](./contributing.md)
 - [OIE Docker Hub](https://hub.docker.com/u/openintegrationengine)
 - [OIE GitHub Repository](https://github.com/OpenIntegrationEngine/engine)

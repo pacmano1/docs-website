@@ -38,7 +38,7 @@ keystore.keypass = (generated)
 keystore.type = JCEKS
 ```
 
-Passwords set by hand before the first start are kept as they are. The [TLS Manager](./extension_catalog.md#tls-manager) community extension adds certificate management for this keystore and the Java trust store; it is not part of the engine.
+Passwords set by hand before the first start are kept as they are. The [TLS Manager](https://openintegrationengine.org/plugins/) community extension adds certificate management for this keystore and the Java trust store; it is not part of the engine.
 
 ### Connector-level TLS
 
@@ -91,7 +91,7 @@ Configure automatic lockout after failed login attempts:
 OIE supports extensible authentication through the `MultiFactorAuthenticationPlugin` abstract class, which implements the `ServicePlugin` interface. After primary authentication succeeds, a registered MFA plugin can trigger secondary authentication via a client-side plugin.
 
 ### Role-based access control (RBAC)
-The engine has no role model. `DefaultAuthorizationController.isUserAuthorized` returns `true` for every user and operation, so every account can do everything the API allows. The [Role Based Access Control](./extension_catalog.md#role-based-access-control) community extension adds roles and per-channel grants.
+The engine has no role model. `DefaultAuthorizationController.isUserAuthorized` returns `true` for every user and operation, so every account can do everything the API allows. The [Role Based Access Control](https://openintegrationengine.org/plugins/) community extension adds roles and per-channel grants.
 
 ## Encryption
 
