@@ -36,7 +36,7 @@ Choose which categories of error should trigger the alert. You can select one or
 | **Serializer** | Errors when converting a message to or from its internal representation (e.g. parsing HL7 to XML) |
 | **Filter** | Errors thrown by a source or destination filter rule |
 | **Transformer** | Errors thrown by a source or destination transformer step |
-| **User Defined Transformer** | Errors dispatched by a manual call to `alerts.sendAlert(errorMessage)` from any script |
+| **User Defined Transformer** | Errors dispatched by a manual call to `alerts.sendAlert(errorMessage)` from any script that has a channel in scope. The global deploy and undeploy scripts do not have the `alerts` object |
 | **Response Validation** | Errors from destination response validation. For example, receiving an HL7 NACK |
 | **Response Transformer** | Errors from a destination's response transformer step |
 | **Attachment Handler** | Errors from the attachment handler |
@@ -45,7 +45,7 @@ Choose which categories of error should trigger the alert. You can select one or
 | **Postprocessor Script** | Errors from a global or channel postprocessor script |
 | **Undeploy Script** | Errors from a channel's undeploy script |
 
-You can optionally provide a **regex pattern** that is matched against the full error output, a composite string that includes the error type, error source line (if available), the custom error message, and the exception stack trace. Only errors whose combined output matches the regex will trigger the alert.
+You can optionally provide a **regex pattern** that is searched for in the full error output, a composite string that includes the error type, error source line (if available), the custom error message, and the exception stack trace. The search is a substring match, not a whole-string match: the alert fires when the pattern is found anywhere in the combined output.
 
 ### Channel and connector selection
 
@@ -89,7 +89,7 @@ These variables can be used in the Subject and Template fields:
 | `${errorType}` | The error category (matches the categories listed above) |
 | `${channelId}` | The ID of the channel where the error occurred |
 | `${channelName}` | The name of that channel |
-| `${connectorName}` | The name of the connector where the error occurred |
+| `${connectorName}` | The name of the connector where the error occurred. Null for errors that have no connector, which include deploy, undeploy, preprocessor, postprocessor, and attachment handler errors, and `alerts.sendAlert()` called from a script with no message in scope, the deploy and undeploy scripts among them |
 | `${connectorType}` | The connector protocol name (e.g. "TCP Sender", "HTTP Listener"), if available |
 | `${messageId}` | The message ID associated with the error (only present when a message is involved) |
 
@@ -97,14 +97,18 @@ Global Map and Configuration Map entries are also available by name. For example
 
 ### Example template
 
-```
+A Template body. Every reference in it comes from the table above.
+
+```velocity
 Channel: ${channelName} (${channelId})
-Connector: ${connectorName}
-Message ID: ${messageId}
-Date: ${date}
+Connector: $!{connectorName}
+Message ID: $!{messageId}
+Date: ${date.get('yyyy-MM-dd HH:mm:ss')}
 
 ${error}
 ```
+
+Velocity runs in its default non-strict mode, so a reference whose variable is missing or null is written out as its own literal text, `${messageId}` for example. The `$!{messageId}` form writes nothing instead. That matters for every error that carries no connector, the deploy, undeploy, preprocessor, postprocessor, and attachment handler errors among them, and for deploy and undeploy script errors most of all, since they carry no message either.
 
 ## Email configuration
 

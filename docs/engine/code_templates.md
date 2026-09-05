@@ -11,7 +11,7 @@ Code templates are reusable code snippets and function libraries that can be sha
 
 Code templates are organized into **libraries**. Each library can be assigned to specific channels or made available globally.
 
-```
+```text
 Code Template Library
 ├── Code Template 1 (Function)
 ├── Code Template 2 (Compiled Code Block)
@@ -46,25 +46,32 @@ Access via the main menu or navigation panel:
 ### Function
 A named function that can be called from channel scripts. Functions are automatically added to the script context of assigned channels.
 
+The engine parses the comment block at the top of a Function template. The text before the first `@` tag becomes the template's description, and the `@param {type} name - text` and `@return {type} text` lines supply the parameter and return details that the Reference List and the editor's auto-complete show for the function. The format the engine expects is the one below, each line indented and without a leading asterisk. It is what a new Function template starts with, and what the **Generate JSDoc** / **Update JSDoc** button in the template editor writes. With a `*` at the start of each line no `@` tag is recognized: the whole comment, asterisks included, becomes the description, and every parameter shows as type `Any` with no description. The block is stripped from the code before the function is added to channel scripts.
+
 ```javascript
 /**
- * Formats a patient name from HL7 components.
- * @param {string} lastName
- * @param {string} firstName
- * @return {string} Formatted name
- */
+    Formats a patient name from HL7 components.
+
+    @param {String} lastName - Family name, PID.5.1
+    @param {String} firstName - Given name, PID.5.2
+    @return {String} The name as LAST, First
+*/
 function formatPatientName(lastName, firstName) {
     return lastName.toUpperCase() + ', ' + firstName;
 }
 ```
 
-Usage in a channel transformer:
+The call below runs in the source or destination transformer of a channel whose inbound data type is HL7 v2, with the template's library assigned to the channel and the Filter / Transformer context selected on the template. `msg` is the parsed inbound message, an E4X XML object the engine builds from the inbound data type before the transformer runs (see [Message (`msg`)](./javascript_scripting_reference.md#message-msg)); the `PID.5.1` and `PID.5.2` element names exist only under HL7 v2. No outbound template is needed. `$c` is the channel map shorthand the engine adds to every script: one argument reads a key, two arguments write one.
+
 ```javascript
-var name = formatPatientName(
+var patientName = formatPatientName(
     msg['PID']['PID.5']['PID.5.1'].toString(),
     msg['PID']['PID.5']['PID.5.2'].toString()
 );
+$c('patientName', patientName);
 ```
+
+For a PID.5 of `DOE^JOHN` the channel map entry `patientName` holds `DOE, JOHN`, shown on the message in the Message Browser's Mappings tab.
 
 ### Compiled code block
 A block of code that is compiled and added to the script context, similar to a function. Useful for shared initialization code or constants.
@@ -102,8 +109,10 @@ Each library must be explicitly assigned to channels:
 
 1. Open the library properties
 2. Check the channels that should have access
-3. Use **Select All** to make the library globally available
+3. Check **[New Channels]** to include every channel not explicitly unchecked, including channels created or imported later
 4. Save and redeploy affected channels
+
+A channel's own assignments are also editable from the channel editor: **Set Dependencies** opens the Channel Dependencies dialog, whose **Code Template Libraries** tab lists every library with Select All and Deselect All links.
 
 Changes to code templates require **redeployment** of all channels that use the affected library.
 
@@ -114,7 +123,9 @@ Changes to code templates require **redeployment** of all channels that use the 
 - Use **Import** to load from XML files
 
 ### CLI
-```
+These commands are typed at the prompt of the CLI shell, which connects to a running server (see [Launching the CLI](./command_line_interface.md#launching-the-cli)); they are not operating-system commands. `path` is quoted when it contains spaces. Each command is described under [Code templates](./command_line_interface.md#code-templates) on that page.
+
+```text
 codetemplate library list [includecodetemplates]
 codetemplate list
 codetemplate import "path" [force]

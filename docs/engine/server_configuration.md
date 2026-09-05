@@ -9,7 +9,7 @@ The primary server configuration file is `conf/mirth.properties`. This file cont
 
 ## Configuration file location
 
-```
+```text
 OIE_HOME/conf/mirth.properties
 ```
 
@@ -58,7 +58,7 @@ https.client.protocols = TLSv1.3,TLSv1.2
 https.server.protocols = TLSv1.3,TLSv1.2,SSLv2Hello
 
 # Allowed cipher suites (comma-separated)
-https.ciphersuites = TLS_CHACHA20_POLY1305_SHA256,...
+https.ciphersuites = TLS_CHACHA20_POLY1305_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_DSS_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,TLS_DHE_DSS_WITH_AES_128_GCM_SHA256,TLS_EMPTY_RENEGOTIATION_INFO_SCSV
 
 # Ephemeral Diffie-Hellman key size
 https.ephemeraldhkeysize = 2048
@@ -78,7 +78,7 @@ keystore.type = JCEKS
 ```
 
 ::: warning
-On first startup, if the keystore passwords still equal the default value (`81uWxplDtB`), OIE will automatically replace them with randomly generated passwords. The keystore file stores the server certificate (for the web server and API) and the secret key used to encrypt message data, exports, and other sensitive content. **Back up this file**. If it is lost, any data encrypted with it cannot be recovered.
+When the server starts with no keystore file at `keystore.path` and both passwords still equal the default value (`81uWxplDtB`), OIE replaces them with randomly generated passwords, writes the new values back to `mirth.properties`, and creates the keystore. The keystore file stores the server certificate (for the web server and API) and the secret key used to encrypt message data, exports, and other sensitive content. **Back up this file**. If it is lost, any data encrypted with it cannot be recovered.
 :::
 
 ## Database configuration
@@ -103,13 +103,12 @@ database.password =
 # Maximum number of connections for the messaging engine pool
 database.max-connections = 20
 
-# Connection pool test query (no default; used by the connection pool for validation)
-# database.test-query = SELECT 1
-
 # Retry configuration on startup
 database.connection.maxretry = 2
 database.connection.retrywaitinmilliseconds = 10000
 ```
+
+The pool's validation query is not read from this file. The engine derives it from the database type, and the default HikariCP pool applies it only when the type is `sqlserver`.
 
 ### Read/write pool splitting
 
@@ -119,12 +118,20 @@ When enabled, the connection pool splits into a read-only pool and a read/write 
 # Enable read/write connection pool splitting (default: true)
 database.enable-read-write-split = true
 
-# Read-only pool settings (all default to the main pool values if not set)
+# Maximum number of connections for the read-only pool
+# (defaults to database.max-connections when not set)
+database-readonly.max-connections = 20
+
+# Read-only pool overrides (each defaults to the main pool value when not set)
+# Database type for the read-only pool: derby, mysql, postgres, oracle, sqlserver
 # database-readonly =
 # database-readonly.url =
-# database-readonly.max-connections =
+# database-readonly.driver =
+# database-readonly.username =
+# database-readonly.password =
+# database-readonly.pool =
 
-# Use write pool for internal caches (set to true if read replica has lag)
+# Use the write pool for internal caches (set to true if the read replica lags)
 database.write-pool-cache = false
 ```
 
@@ -133,17 +140,38 @@ See [Database Support](./database_support.md) for connection URL examples for ea
 ## Password policy
 
 ```properties
-password.minlength = 0        # Minimum password length (0 = no minimum)
-password.minupper = 0         # Minimum uppercase characters
-password.minlower = 0         # Minimum lowercase characters
-password.minnumeric = 0       # Minimum numeric characters
-password.minspecial = 0       # Minimum special characters
-password.retrylimit = 0       # Max failed login attempts (0 = no limit)
-password.lockoutperiod = 0    # Lockout duration in hours (0 = no lockout)
-password.expiration = 0       # Days until password expires (0 = never)
-password.graceperiod = 0      # Days to allow login after password expiration
-password.reuseperiod = 0      # Days before reusing a password (0 = always allow, -1 = never)
-password.reuselimit = 0       # Times a password may be reused (0 = no limit, -1 = never)
+# Minimum password length (0 = no minimum)
+password.minlength = 0
+
+# Minimum uppercase characters
+password.minupper = 0
+
+# Minimum lowercase characters
+password.minlower = 0
+
+# Minimum numeric characters
+password.minnumeric = 0
+
+# Minimum special characters
+password.minspecial = 0
+
+# Failed login attempts allowed before lockout (0 = no lockout)
+password.retrylimit = 0
+
+# Lockout duration in hours (0 = no lockout, even when retrylimit is set)
+password.lockoutperiod = 0
+
+# Days until a password expires (0 = never)
+password.expiration = 0
+
+# Days a user may still log in after the password expires (0 = unlimited, -1 = no grace period)
+password.graceperiod = 0
+
+# Days before a previous password may be reused (0 = always allow, -1 = never)
+password.reuseperiod = 0
+
+# Times a previous password may be reused (0 = no limit, -1 = never)
+password.reuselimit = 0
 ```
 
 ## Server behavior
@@ -220,9 +248,6 @@ rhino.optimizationlevel = -1
 ```properties
 # Default maximum heap size for the Administrator client (not the server)
 administrator.maxheapsize = 512m
-
-# Heap size options shown on the launch page (default: 256m,512m,1g,2g)
-# administrator.maxheapsizeoptions = 256m,512m,1g,2g
 ```
 
 ## Application data
@@ -268,10 +293,16 @@ digest.saltsizeinbytes = 8
 
 # Iterations for the digest algorithm
 digest.iterations = 600000
+
+# Derive the hash with a password-based key derivation function (0 = off, 1 = on)
+digest.usepbe = 1
+
+# Derived key size in bits, used when digest.usepbe = 1
+digest.keysizeinbits = 256
 ```
 
 ::: info
-After changing `digest.algorithm`, all existing passwords must be reset by an administrator or updated by each user.
+A stored hash is the salt followed by the digest, with none of these values recorded alongside it. After changing any of them, an existing hash keeps verifying only while `digest.fallback.algorithm`, `digest.fallback.saltsizeinbytes`, `digest.fallback.iterations`, `digest.fallback.usepbe`, and `digest.fallback.keysizeinbits` describe the scheme that produced it. When the fallback keys are absent the engine tries SHA256 with 8 salt bytes, 1000 iterations, and no PBE, the defaults of releases before 4.4.0, not the values above. Otherwise every existing password must be reset by an administrator or changed by its user.
 :::
 
 ## Other configuration files
@@ -282,7 +313,7 @@ The `conf/` directory contains additional configuration files:
 |---|---|
 | `log4j2.properties` | Controls server log levels, file rotation, and output format |
 | `log4j2-cli.properties` | Same as above, but specific to the CLI |
-| `dbdrivers.xml` | Defines JDBC drivers available in the Database connector's Driver drop-down |
+| `dbdrivers.xml` | Read for the Database connector's Driver drop-down only while no driver list is stored in the database. Saving the list from the Administrator's driver dialog, or an upgrade from a schema older than 3.8.0, stores a copy in the database and the file is no longer read |
 | `mirth-cli-config.properties` | Stores CLI connection defaults (address, user, password) |
 
 The `appdata/` directory contains runtime files:
@@ -296,19 +327,20 @@ The `appdata/` directory contains runtime files:
 
 ## JVM options
 
-JVM settings are configured in `oieserver.vmoptions`:
+The launcher reads `oieserver.vmoptions`, which contains only `-include-options` directives for the files below and must not be edited. Put JVM settings in `conf/custom.vmoptions`:
 
-```
-# Set max heap size (default: 256m, set in conf/base_includes.vmoptions)
--Xmx256m
+```text
+# Maximum heap size. conf/base_includes.vmoptions sets -Xmx256m; custom.vmoptions
+# is included last, so the value here takes effect.
+-Xmx1g
 
-# Custom Java path (alternative to OIE_JAVA_PATH environment variable)
+# Pin the java binary. The OIE_JAVA_PATH environment variable overrides this
+# directive; JAVA_HOME and then the PATH are tried only when neither is set.
 # -java-cmd /path/to/java
+# -java-cmd C:\path\to\java.exe
 ```
 
-The `oieserver.vmoptions` file itself contains only `-include-options` directives that load the files below. Custom JVM settings should be added to `conf/custom.vmoptions`.
-
-Additional JVM options files:
+The files `oieserver.vmoptions` includes, in order:
 - `conf/base_includes.vmoptions` - Base JVM settings (heap size, headless mode)
 - `conf/default_modules.vmoptions` - Default module inclusions
 - `conf/custom.vmoptions` - User-defined custom JVM options

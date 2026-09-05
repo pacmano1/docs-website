@@ -25,13 +25,13 @@ Each connector type automatically populates certain map variables with metadata 
 | `localAddress` | Local IP address |
 | `localPort` | Local listening port |
 | `method` | HTTP method (GET, POST, PUT, DELETE) |
-| `url` | Full request URL |
-| `uri` | Request URI path |
+| `url` | Request URL from the scheme through the path, without the query string |
+| `uri` | Request path with its query string, or the whole URI when the request line carries an absolute URI |
 | `protocol` | HTTP protocol version |
 | `query` | Query string |
-| `contextPath` | Request context path |
-| `parameters` | Map of query/form parameters |
-| `headers` | Map of HTTP request headers |
+| `contextPath` | Path portion of the request URL |
+| `parameters` | `MessageParameters` object wrapping the query and form parameters. `getParameter(name)` returns the first value, `getParameterList(name)` every value, `getKeys()` the parameter names |
+| `headers` | `MessageHeaders` object wrapping the request headers, with header names matched case-insensitively. `getHeader(name)` returns the first value, `getHeaderList(name)` every value, `getKeys()` the header names |
 
 ### File Reader
 | Variable | Description |
@@ -39,10 +39,10 @@ Each connector type automatically populates certain map variables with metadata 
 | `originalFilename` | Original filename of the file being read |
 | `fileDirectory` | Directory the file was read from |
 | `fileSize` | Size of the file in bytes |
-| `fileLastModified` | Last modified timestamp of the file |
+| `fileLastModified` | Last modified time of the file, in milliseconds since the epoch |
 | `pollId` | ID of the current poll cycle |
 | `pollSequenceId` | Sequence number within the current poll |
-| `pollComplete` | `true` on the last message in the poll cycle |
+| `pollComplete` | `true` on the last message in the poll cycle, absent on the others |
 
 ### Database Reader
 No automatic source map variables.
@@ -85,18 +85,18 @@ No automatic source map variables.
 No automatic source map variables.
 
 ### JavaScript Reader
-No automatic variables. The JavaScript Reader script returns the raw message string.
+No automatic variables. The script's return value becomes the message: a string, a `RawMessage` from `com.mirth.connect.server.userutil`, or a `java.util.List` of either. A `RawMessage` built with a source map carries it into the message; a string return has an empty source map. Returning `undefined`, `null`, or an empty string produces no message.
 
 ## Destination connector map variables
 
-These variables are populated in the `connectorMap` after a destination connector executes.
+A destination connector writes these into its own `connectorMap` while it sends, after the destination's filter and transformer have run. They are readable in the destination's response transformer. In the destination's filter or transformer they are still `null`.
 
 ### HTTP Sender
 | Variable | Description |
 |---|---|
 | `responseStatusLine` | HTTP response status line |
 | `responseStatusCode` | HTTP response status code |
-| `responseHeaders` | Map of response headers |
+| `responseHeaders` | `MessageHeaders` object wrapping the response headers, with the same methods and case-insensitive matching as the HTTP Listener `headers` entry |
 
 ### TCP Sender (Server mode)
 | Variable | Description |
@@ -109,40 +109,51 @@ These variables are populated in the `connectorMap` after a destination connecto
 
 ## Accessing map variables
 
-### In transformers/filters (JavaScript)
-```javascript
-// Read source map variables
-var remoteIP = sourceMap.get('remoteAddress');
-var filename = sourceMap.get('originalFilename');
+Every preprocessor, filter, transformer and response transformer script sees the maps as the scope variables `sourceMap`, `channelMap`, `connectorMap` and `responseMap`. They are Java `Map` objects: `.get(key)` reads a value and `.put(key, value)` writes one. The shorthand functions `$s(key)`, `$c(key)`, `$co(key)` and `$r(key)` call `.get()` on the same four maps, and with a second argument they call `.put()`. A key the connector did not populate returns `null`.
 
-// Read connector map variables (destination)
+### In a filter or transformer
+
+This runs in a source or destination filter or transformer step on a channel whose source connector is a TCP Listener, which populates `remoteAddress` and `remotePort`. `sourceMap` and `channelMap` come from the script scope. Storing the value in the channel map keeps it with the message, where the Message Browser shows it.
+
+```javascript
+var remoteAddress = sourceMap.get('remoteAddress');
+var remotePort = sourceMap.get('remotePort');
+channelMap.put('sender', remoteAddress + ':' + remotePort);
+```
+
+### In a response transformer
+
+The HTTP Sender writes `responseStatusCode`, `responseStatusLine` and `responseHeaders` into its connector map while it sends, and the send happens after the destination's filter and transformer have run. The destination's response transformer runs after the send and reads the same `connectorMap`; in the destination's transformer the key is still `null`. A value the response transformer puts into `channelMap` is stored with this destination's message. Whether it reaches the next destination in the chain depends on the queue: the next destination's channel map is copied from this one as soon as this destination finishes its turn in the processing thread. With the queue off, or with Send first on and an empty queue, the send and the response transformer run inside that turn, so the value travels down the chain. A destination that queues the message hands its channel map on before the send, and the value then stays on this destination's message only.
+
+```javascript
 var statusCode = connectorMap.get('responseStatusCode');
+channelMap.put('httpStatus', statusCode);
 ```
 
 ### In templates (Velocity)
-```
-Remote address: ${remoteAddress}
+
+Destination connector fields that accept Velocity, such as the File Writer's file name and template or the HTTP Sender's URL and content, resolve `${key}` against the source map, channel map, connector map and response map of the connector message, in that order, so a later map wins when two hold the same key. This template runs in a File Writer on a channel whose source connector is a File Reader, which populates `originalFilename` and `fileSize`. `${originalFilename}` has a fallback: when no map holds it, the replacer substitutes the current time in milliseconds followed by `.dat`. A key that no map holds and that has no fallback is left as the literal `${key}` text.
+
+```velocity
 Original file: ${originalFilename}
+Size: ${fileSize}
 ```
 
-### In postprocessor
-```javascript
-var sourceAddr = sourceMap.get('remoteAddress');
-logger.info('Message from: ' + sourceAddr);
-```
+### In the postprocessor
+
+The postprocessor runs against the merged message rather than one connector, so its scope holds `sourceMap`, `channelMap` and `responseMap` and no `connectorMap`. `sourceMap` and `channelMap` are read-only there: `.put()` on either, and `$c(key, value)`, throws `UnsupportedOperationException`. The postprocessor reads what earlier steps stored; it cannot add to those maps.
 
 ## Custom map variables
 
-You can add your own variables to writable maps:
+A transformer step stores its own values with `.put()` on the writable maps. `channelMap` and `connectorMap` come from the script scope. `DateUtil` is `com.mirth.connect.server.userutil.DateUtil`, imported into every script scope; `getCurrentDate(pattern)` formats the current time with a `SimpleDateFormat` pattern.
 
 ```javascript
-// In a transformer
 channelMap.put('processedTimestamp', DateUtil.getCurrentDate('yyyy-MM-dd HH:mm:ss'));
 connectorMap.put('customFlag', 'URGENT');
 ```
 
-These custom variables are then available in subsequent JavaScript steps via the corresponding map's `.get()` method, and in Velocity template fields using `${variableName}`.
+The channel map is copied from the source connector to the first destination of each chain, and from each destination to the next one in its chain, so a later step reads `processedTimestamp` with `channelMap.get('processedTimestamp')` or `$c('processedTimestamp')` and a Velocity field resolves it as `${processedTimestamp}`. The connector map belongs to one connector: `customFlag` is visible only within the connector that wrote it.
 
 ::: info
-The `sourceMap` is read-only. Use `channelMap` to store custom variables that need to be accessible across all connectors in the channel, or `connectorMap` for variables scoped to the current connector.
+The `sourceMap` is read-only in every script: `sourceMap.put()` and `$s(key, value)` throw `UnsupportedOperationException`. Use `channelMap` for values every connector in the channel needs, and `connectorMap` for values scoped to the current connector.
 :::

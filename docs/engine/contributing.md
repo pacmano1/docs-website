@@ -25,15 +25,15 @@ git checkout -b feature/your-feature-name
 ```
 
 ### 5. Install tooling
-OIE specifies the working versions of Java and Ant in [`.sdkmanrc`](https://github.com/OpenIntegrationEngine/engine/blob/main/.sdkmanrc). To take advantage of this, install [SDKMAN](https://sdkman.io/) and run `sdk env install`
+OIE specifies the working Java version in [`.sdkmanrc`](https://github.com/OpenIntegrationEngine/engine/blob/main/.sdkmanrc). To take advantage of this, install [SDKMAN](https://sdkman.io/) and run `sdk env install`
 in the project's root directory.
 
 ### 6. Implement your changes
 
-Implement the necessary changes, ensuring they align with the project’s coding standards and practices.
+Implement the necessary changes, ensuring they align with the project's coding standards and practices.
 
 ### 7. Test your changes
-Before submitting your changes, please ensure that all tests pass and that your changes work as expected in your local environment.
+Before submitting your changes, please ensure that all tests pass and that your changes work as expected in your local environment. The build and test commands are kept in the engine repository's [CONTRIBUTING.md](https://github.com/OpenIntegrationEngine/engine/blob/main/CONTRIBUTING.md).
 
 ### 8. Submit a pull request
 Once your changes are ready, push them to your fork and create a **draft pull request (PR)** from your branch to the `main` branch of the project. Draft PRs help indicate that the work is in progress.
@@ -53,7 +53,7 @@ If you encounter a bug, please report it using the **GitHub Issues Tracker**:
 
 If you would like to suggest a new feature or enhancement:
 1. Open a new issue in the **GitHub Issues Tracker**.
-2. Label the issue as a **feature request**.
+2. Use the **Feature request** template, which applies the `enhancement` label.
 3. Provide a detailed description of the feature and the problem it aims to solve.
 4. If applicable, include examples or use cases to demonstrate the value of the feature.
 

@@ -25,7 +25,7 @@ is evaluated as: Rule 1 OR (Rule 2 AND Rule 3).
 
 ### The "msg" object
 
-Before a filter runs, the incoming message is parsed into an internal representation exposed as the **msg** variable. Depending on the data type in use, this could be an E4X XML object, a JavaScript object, or a Java String.
+Before a filter runs, the incoming message is parsed into an internal representation exposed as the **msg** variable. Depending on the data type in use, this could be an E4X XML object, a JavaScript object, or a JavaScript string. The paths on this page assume the HL7 v2.x data type, where the parsed message is XML whose elements are named by segment, field, and component, so PID.3.1 is reached as `msg['PID']['PID.3']['PID.3.1']`. These element names exist only under the HL7 v2.x data type.
 
 ### Filter rule types
 
@@ -36,7 +36,7 @@ Before a filter runs, the incoming message is parsed into an internal representa
 | **External Script** | Points to a JavaScript file on the server filesystem |
 | **Iterator** | Iterates over repeating segments or elements, applying child rules to each one |
 
-#### Rule Builder Example
+#### Rule Builder example
 
 To accept only ADT messages:
 - Field: `msg['MSH']['MSH.9']['MSH.9.1']`
@@ -44,6 +44,8 @@ To accept only ADT messages:
 - Value: `ADT`
 
 #### JavaScript rule example
+
+A JavaScript rule runs inside the filter of the connector it belongs to, source or destination, with `msg` as the parsed inbound message. This rule assumes the HL7 v2.x data type and reads the sending facility from MSH.4.1. The rule's return value is its result: `true` accepts the message, `false` rejects it.
 
 ```javascript
 // Accept messages from specific sending facilities
@@ -104,18 +106,19 @@ Assigns a value to a field in the outbound template.
 
 #### JavaScript step
 
-Gives you full scripting control for complex transformations:
+Gives you full scripting control for complex transformations.
+
+This step runs in a transformer with the HL7 v2.x data type on both sides and an HL7 v2.x outbound template loaded, so `tmp` exists and holds the parsed template. `msg` is the parsed inbound message. Because a template is set, the transformed message is taken from `tmp`, not `msg`. Without a template `tmp` is not defined and the step would write to `msg` instead. `DateUtil` is one of the utility classes the engine imports into every script.
 
 ```javascript
-// Reformat a date field
+// Reformat the date of birth on its way into the outbound template
 var dob = msg['PID']['PID.7']['PID.7.1'].toString();
 if (dob.length === 8) {
-    var year = dob.substring(0, 4);
-    var month = dob.substring(4, 6);
-    var day = dob.substring(6, 8);
-    tmp['PID']['PID.7']['PID.7.1'] = year + '-' + month + '-' + day;
+  tmp['PID']['PID.7']['PID.7.1'] = DateUtil.convertDate('yyyyMMdd', 'yyyy-MM-dd', dob);
 }
 ```
+
+With a PID.7 of `19800101` the outbound message carries `1980-01-01`.
 
 #### Iterator step
 
@@ -152,20 +155,24 @@ The transformer editor provides two tree views of the message structure:
 
 ## Execution order
 
-```
+Within one destination chain, the filters, transformers, send, and response transformer run in this order.
+
+```text
 Source Filter Rules (in order)
     ↓ (if accepted)
 Source Transformer Steps (in order)
     ↓
 Destination 1 Filter Rules (in order)
-    ↓ (if accepted)
+    ↓ (if accepted; otherwise the chain continues with Destination 2)
 Destination 1 Transformer Steps (in order)
     ↓
 Destination 1 Connector sends message
     ↓
 Destination 1 Response Transformer Steps (in order)
     ↓
-Destination 2 Filter...
+Destination 2 Filter Rules, Transformer Steps, send, Response Transformer Steps
     ↓
-... (repeat for each destination)
+Every later destination in the chain, in the same order
 ```
+
+Destination 2 waits for Destination 1 only when the two share a chain. A destination with **Wait for previous destination** checked, which is the default, joins the chain of the destination above it; one with it unchecked starts a new chain, and chains run at the same time. See [Destination chains](./threading_and_ordering.md#destination-chains). When a destination queues the message instead of sending it on the processing thread, the chain moves on at once, and the send and the response transformer run later on a queue thread. See [Destination queues](./queueing.md#destination-queues).

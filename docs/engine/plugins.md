@@ -48,7 +48,7 @@ For environments where UI-based installation is not feasible, you can install pl
 
 1. Stop the OIE Server
 2. Extract the plugin `.zip` file
-3. Copy the extracted plugin folder to the `extensions/` directory in your OIE installation:
+3. Copy the extracted plugin folder to the `extensions/` directory in your OIE installation. In these samples `/opt/oie` and `C:\Program Files\OIE` stand for wherever OIE is installed:
    ::: code-group
    ```bash [Linux/macOS]
    cp -r my-plugin /opt/oie/extensions/
@@ -75,25 +75,26 @@ When running OIE in a Docker container, you have several options for installing 
 
 #### Example 1: Docker CLI with `custom-extensions` volume mount
 
-Mount a host directory containing plugin zip files to the container's `custom-extensions` directory. The container's entrypoint script will unzip and install them to the `extensions` directory prior to launching the server:
+Mount a host directory containing plugin zip files to the container's `custom-extensions` directory. The container's entrypoint script will unzip and install them to the `extensions` directory prior to launching the server. Port 8443 is the one the Administrator connects on:
 
 ```bash
 docker run -d \
+  -p 8443:8443 \
   -v /path/to/local/custom-extensions:/opt/engine/custom-extensions \
   openintegrationengine/engine:latest
 ```
 
+Before it starts the server, the entrypoint prints `Found N custom extensions.`, with N the number of zip files, but only when it found at least one. If `docker logs` on the container shows no such line, the mounted directory held no `.zip` files.
+
 #### Example 2: Custom Dockerfile with manual installation
 
-Create a custom Docker image with plugins pre-installed:
+Extract the plugin `.zip` file on the build host and copy the folder into the image's `extensions/` directory. The base image runs as the `engine` user and owns everything under `/opt/engine`, so the copied files are given to the same user:
 
 ::: code-group
 ```dockerfile [Dockerfile]
 FROM openintegrationengine/engine:latest
 
-COPY my-plugin.zip /tmp/
-RUN unzip /tmp/my-plugin.zip -d /opt/engine/extensions/ && \
-    rm /tmp/my-plugin.zip
+COPY --chown=engine:engine my-plugin/ /opt/engine/extensions/my-plugin/
 ```
 :::
 
@@ -101,16 +102,15 @@ Build and run:
 
 ```bash
 docker build -t oie-with-plugins .
-docker run -d oie-with-plugins
+docker run -d -p 8443:8443 oie-with-plugins
 ```
 
 #### Example 3: Docker Compose with `EXTENSIONS_DOWNLOAD` URL
 
-The container supports downloading a bundle of extensions from a remote web server and installing them prior to launching the server. The bundle file is a zip file that contains one or more extension zip files to be installed:
+The container supports downloading a bundle of extensions from a remote web server and installing them prior to launching the server. The bundle file is a zip file that contains one or more extension zip files to be installed. The extension zips must sit at the top level of the bundle; the entrypoint only unzips `*.zip` files directly inside the extracted bundle, and zips nested in a folder are ignored:
 
 ::: code-group
 ```yaml [compose.yaml]
-version: '3.8'
 services:
   oie:
     image: openintegrationengine/engine:latest
@@ -121,6 +121,8 @@ services:
       - "8443:8443"
 ```
 :::
+
+A failed download is not fatal. The entrypoint prints `problem with extensions download` and starts the server with no extensions installed, so check `docker logs` for that line when the extensions are missing.
 
 ## Uninstalling plugins
 
@@ -146,6 +148,8 @@ services:
    ```
    :::
 4. Start the OIE Server
+
+Deleting the folder removes the code only. **Uninstall Extension** in the Administrator also queues removal of the extension's saved properties and any database uninstall statements the plugin supplies, and the server applies both at the next start.
 
 ## Enabling and disabling plugins
 
@@ -180,7 +184,7 @@ Before installing a plugin, verify:
 3. **Dependencies**: Review any additional dependencies the plugin requires
 
 ::: info
-Plugin authors must specify compatible versions in their plugin. Currently, plugins cannot support a range of versions.
+A plugin declares the server versions it supports as a comma-separated list of exact versions. A version range is not supported.
 :::
 
 ## Troubleshooting common issues
@@ -202,30 +206,28 @@ If the server fails to start after installing a plugin:
 2. Try starting the server with the plugin disabled:
    ::: code-group
    ```bash [Linux/macOS]
-   # Temporarily move the plugin out of extensions
-   mv /opt/oie/extensions/problem-plugin /tmp/
+   # Move the plugin out of extensions; the server loads only folders inside it
+   mv /opt/oie/extensions/problem-plugin /opt/oie/
    ```
    ```powershell [Windows]
-   # Temporarily move the plugin out of extensions
-   Move-Item "C:\Program Files\OIE\extensions\problem-plugin" "C:\Temp\"
+   # Move the plugin out of extensions; the server loads only folders inside it
+   Move-Item "C:\Program Files\OIE\extensions\problem-plugin" "C:\Program Files\OIE\"
    ```
    :::
 3. If the server starts successfully, the plugin is likely incompatible
 
 ### Plugin features not working
 
-1. Verify the extension shows **Enabled** in the **Status** column under **Engine** → **Extensions**
-2. Check for JavaScript console errors in the Administrator
-3. Review server logs for runtime errors
-4. Ensure all plugin dependencies are installed
+1. Verify the extension shows **Enabled** in the **Status** column under **Engine** > **Extensions**
+2. Review server logs for runtime errors
+3. Check `logs/mirth.log` for `could not locate library`, which the server logs at startup for each library the plugin declares but does not ship
 
 ### Common error messages
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `ClassNotFoundException` | Missing dependency | Install required dependencies |
+| `ClassNotFoundException` | A library the plugin declares in its metadata is missing from its folder | Look for `could not locate library` in `logs/mirth.log` and restore the file it names |
 | `NoSuchMethodError` | Version mismatch | Use compatible plugin version |
-| `SecurityException` | Permission denied | Check file permissions |
 
 ## Plugin development resources
 

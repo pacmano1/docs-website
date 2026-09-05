@@ -23,7 +23,7 @@ OIE uses an embedded Apache Derby database by default, which allows you to store
 For production deployments, it is recommended to use only database versions currently receiving official security and maintenance support from their respective vendors. The following database engines are supported as backends:
 
 * PostgreSQL
-* MySQL / MariaDB
+* MySQL
 * Oracle
 * SQL Server
 
@@ -37,9 +37,9 @@ Every release publishes native installers for Windows, macOS and Linux on the [r
 
 Each platform ships in two flavors.
 
-**With JRE** bundles Azul Zulu 17, so nothing else needs installing and the runtime the server uses is known and fixed. Take this one unless you have a reason not to.
+**With JRE** bundles Azul Zulu 17, so nothing else needs installing and the runtime the server uses is known and fixed.
 
-**Without JRE** is smaller and runs on whatever Java 17 or newer is already on the machine. Choose it when Java is managed centrally or already hardened to a standard you have to meet.
+**Without JRE** is smaller and uses a Java runtime already on the machine. The launchers the installer creates look for Java 17 through 25. Choose it when Java is managed centrally or already hardened to a standard you have to meet.
 
 The bundled flavor is between about 55MB and 280MB larger depending on platform, which is the only difference between the two.
 
@@ -73,7 +73,7 @@ Installing into a directory you do not own, such as the default `/Applications/O
 
 ### Installing from an archive
 
-The release also publishes `oie_unix_<version>.tar.gz` and `oie_windows-<arch>_<version>.zip` for a manual install. Unpack the archive wherever you want it and run `oieserver` from the extracted directory.
+The release also publishes `oie_unix_<version>.tar.gz` and `oie_windows-<arch>_<version>.zip` for a manual install. Unpack the archive wherever you want it and run `oieserver` from the extracted directory. The `oieserver` and `oieserver.ps1` scripts accept Java 17 or newer with no upper bound.
 
 Nothing is registered with the service manager and nothing starts on boot, so you have to wire it into systemd, launchd or the Windows service manager yourself. Take this route when you want that control, or when you cannot give an installer administrative rights.
 
@@ -81,10 +81,11 @@ Nothing is registered with the service manager and nothing starts on boot, so yo
 
 After installation the directory contains:
 
-```
+```text
 OIE_HOME/
 ├── appdata/                # Application data
 │   ├── mirthdb/            # Embedded Derby database, when Derby is in use
+│   ├── temp/               # java.io.tmpdir for the server, created at startup
 │   ├── keystore.jks        # TLS keystore
 │   ├── extension.properties        # Installed extension state
 │   ├── server.id           # Unique server identifier
@@ -95,19 +96,18 @@ OIE_HOME/
 │   ├── mirth.properties            # Main server configuration
 │   ├── dbdrivers.xml               # Database driver definitions
 │   ├── log4j2.properties           # Logging configuration
+│   ├── log4j2-cli.properties       # CLI logging configuration
 │   ├── mirth-cli-config.properties # CLI defaults
 │   ├── base_includes.vmoptions     # Base JVM options, do not modify
 │   ├── custom.vmoptions            # Your JVM options
 │   └── default_modules.vmoptions   # Java module system options
-├── custom-lib/             # User-provided libraries, disabled by default
 ├── docs/                   # Licenses and the user API javadocs
 ├── extensions/             # Connectors and plugins
 ├── logs/                   # Server log files
 ├── public_html/            # Web server root
 ├── public_api_html/        # REST API documentation
-├── server-launcher-lib/    # Launcher support libraries
+├── server-launcher-lib/    # Empty at install, jars placed here join the launcher classpath
 ├── server-lib/             # Server libraries
-├── webapps/                # Web applications
 ├── mirth-server-launcher.jar   # Server launcher JAR
 ├── mirth-cli-launcher.jar      # CLI launcher JAR
 ├── oiecommand              # CLI launcher

@@ -1,13 +1,13 @@
 ---
 title: Extension Catalog
-description: Available plugins and how to install them
+description: Bundled and community extensions, the extension directory layout, and the server-side extension points
 ---
 
 # Extension Catalog
 
 OIE is built around a modular extension model. Most of what looks like core functionality is in fact an extension: connectors, data types, filter and transformer steps, attachment viewers, and transmission modes are all loaded the same way a third-party plugin is.
 
-Extensions are discovered at runtime. One install therefore serves both the desktop [Desktop Administrator](./desktop_administrator.md) and the [Web Administrator](./web_administrator.md), with no separate web build to maintain and no way for a plugin to drift out of step with the engine it sits on.
+Extensions are discovered at runtime. One install therefore serves both the [Desktop Administrator](./desktop_administrator.md) and the [Web Administrator](./web_administrator.md), with no separate web build to maintain and no way for a plugin to drift out of step with the engine it sits on.
 
 Installing, enabling, disabling, and removing extensions is covered in the [Plugin Guide](./plugins.md).
 
@@ -23,7 +23,7 @@ OIE ships with 40 extensions in `OIE_HOME/extensions/`.
 | `doc` | Document Writer, producing RTF or PDF from an HTML template. PDFs can be password protected |
 | `file` | File Reader and Writer, covering local paths, FTP, SFTP, Amazon S3, SMB, and WebDAV |
 | `http` | HTTP Listener and Sender |
-| `jdbc` | Database Reader and Writer, using Insert, Update, or JavaScript statements |
+| `jdbc` | Database Reader (a SELECT query or JavaScript, with an optional UPDATE run afterwards) and Database Writer (an SQL statement or JavaScript) |
 | `jms` | JMS Listener and Sender |
 | `js` | JavaScript Reader and Writer, for connecting to an arbitrary endpoint in code |
 | `smtp` | SMTP Sender, with a template for building the message body |
@@ -83,18 +83,18 @@ OIE ships with 40 extensions in `OIE_HOME/extensions/`.
 
 | Extension | Description |
 |---|---|
-| `mllpmode` | MLLP framing for socket and serial connectors |
+| `mllpmode` | MLLP framing for the TCP Listener and Sender |
 
 ## Extension directory structure
 
-Each extension lives in its own subdirectory under `OIE_HOME/extensions/`. Connectors describe themselves with `source.xml` and `destination.xml`, while plugins and data types use `plugin.xml`.
+Each extension lives in its own subdirectory under `OIE_HOME/extensions/`. Connectors describe themselves with `source.xml`, `destination.xml`, or both, depending on which sides they provide, while plugins and data types use `plugin.xml`.
 
-```
+```text
 extensions/
 ├── http/                         # Connector example
 │   ├── http-server.jar           # Server-side classes
 │   ├── http-client.jar           # Client-side classes (downloaded to the Administrator)
-│   ├── http-shared.jar           # Shared classes
+│   ├── http-shared.jar           # Shared classes (loaded on both sides)
 │   ├── source.xml                # Source connector metadata
 │   └── destination.xml           # Destination connector metadata
 └── datapruner/                   # Plugin example
@@ -104,7 +104,7 @@ extensions/
     └── plugin.xml                # Plugin metadata descriptor
 ```
 
-Some extensions also carry a `lib/` or `libs/` subdirectory for third-party dependencies. Client-only extensions, such as the Mapper and Rule Builder steps, ship no server jar at all.
+Some extensions also carry a `lib/` subdirectory for third-party dependencies. Client-only extensions, such as the Mapper and Rule Builder steps, ship no server jar at all.
 
 ## Extension metadata
 
@@ -213,13 +213,13 @@ Server-side extension points are implemented against these types:
 | **Authorization Plugin** | `AuthorizationPlugin` (interface, extends ServerPlugin) |
 | **Transmission Mode** | `TransmissionModeProvider` (abstract class, implements ServerPlugin) |
 | **Code Template Plugin** | `CodeTemplateServerPlugin` (interface, extends ServerPlugin) |
-| **Multi-Factor Auth Plugin** | `MultiFactorAuthenticationPlugin` (abstract class, extends ServicePlugin) |
+| **Multi-Factor Auth Plugin** | `MultiFactorAuthenticationPlugin` (abstract class, implements ServicePlugin) |
 
 All ten live in `com.mirth.connect.plugins`.
 
 Building an extension means:
 
-1. Producing server-side and client-side JARs
+1. Producing the server-side, client-side, or shared JARs the extension needs
 2. Writing the metadata descriptor (`plugin.xml`, or `source.xml` and `destination.xml` for connectors)
 3. Packaging it into the extension directory layout
 4. Testing against a running OIE instance

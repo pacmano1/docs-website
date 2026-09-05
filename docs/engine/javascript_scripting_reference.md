@@ -5,13 +5,13 @@ description: Scripting API and utilities
 
 # JavaScript Scripting Reference
 
-OIE uses the **Mozilla Rhino** JavaScript engine for all scripting. The default language version is Rhino's `VERSION_DEFAULT`, but the version can be configured via server settings. JavaScript is used in transformers, filters, channel scripts, and connector scripts.
+OIE uses the **Mozilla Rhino** JavaScript engine (1.7.13) for all scripting. The language version is set by `rhino.languageversion` in `mirth.properties`; the shipped file sets `es6`. JavaScript is used in transformers, filters, channel scripts, and connector scripts. On this Rhino build a template literal is not interpolated (the placeholder text is emitted as written) and a `const` declared inside a loop body keeps its first value on every later iteration, so the samples on this page use `var` and string concatenation.
 
 ## Script contexts
 
 | Context | When It Executes | Available Objects |
 |---|---|---|
-| **Preprocessor** | Before source transformer | `message` (raw string), `connectorMessage`, `sourceMap`, `channelMap`, `responseMap`, `globalMap`, `globalChannelMap`, `configurationMap` |
+| **Preprocessor** | Before source transformer | `message` (raw string), `connectorMessage`, `sourceMap`, `connectorMap`, `channelMap`, `responseMap`, `destinationSet`, `globalMap`, `globalChannelMap`, `configurationMap` |
 | **Source Filter** | During source processing | `msg` (parsed), `connectorMessage`, `sourceMap`, `connectorMap`, `channelMap`, `responseMap`, `destinationSet`, `globalMap`, `globalChannelMap`, `configurationMap` |
 | **Source Transformer** | During source processing | `msg`, `tmp`, `connectorMessage`, `sourceMap`, `connectorMap`, `channelMap`, `responseMap`, `destinationSet`, `globalMap`, `globalChannelMap`, `configurationMap` |
 | **Destination Filter** | Per destination | `msg`, `connectorMessage`, `sourceMap`, `connectorMap`, `channelMap`, `responseMap`, `globalMap`, `globalChannelMap`, `configurationMap` |
@@ -23,43 +23,52 @@ OIE uses the **Mozilla Rhino** JavaScript engine for all scripting. The default 
 | **Attachment Script** | During source processing | `message` (raw string), `sourceMap`, `globalMap`, `globalChannelMap`, `configurationMap` |
 | **Batch Script** | During source processing | `reader`, `sourceMap`, `globalMap`, `globalChannelMap`, `configurationMap` |
 
+Every context also has `logger`, `router` (a `VMRouter`), `replacer`, `DatabaseConnectionFactory`, and the map shorthand functions described under Maps. Channel scripts also have `channelId` and `channelName`. The global deploy and undeploy scripts (see [Global scripts](./global_scripts.md)) have neither, and `channelName` is null in the postprocessor.
+
 ## Core objects
 
 ### Message (`msg`)
-The parsed message object, available in transformers and filters. The format depends on the inbound data type: E4X XML for HL7v2/XML, a JavaScript object for JSON, or a string for raw data.
+The parsed message object, available in filters and transformers. Its type follows the inbound data type: for XML-serialized types (HL7 v2 included) it is an E4X `XML` object, for JSON a JavaScript object, and for Raw a string. The E4X object is the document element itself, so its children are addressed directly. HL7 v2 is serialized to XML with an `HL7Message` document element whose children are segments (`PID`), fields (`PID.5`), and components (`PID.5.1`); bracket paths of that form work only under the HL7 v2 data type. `for each` is the E4X loop over an `XMLList`.
 
 ```javascript
-// HL7 v2.x field access
+// Source or destination filter/transformer, HL7 v2 data type: segment, field, component
 var lastName = msg['PID']['PID.5']['PID.5.1'].toString();
 var messageType = msg['MSH']['MSH.9']['MSH.9.1'].toString();
 
 // Set a field value
 msg['PID']['PID.5']['PID.5.1'] = 'NEWNAME';
 
-// XML field access
-var value = msg['root']['element'].toString();
-
-// Iterate repeating segments
+// Iterate repeating segments (E4X for each over the OBX XMLList)
+var results = [];
 for each (var obx in msg['OBX']) {
-    var result = obx['OBX.5']['OBX.5.1'].toString();
+    results.push(obx['OBX.5']['OBX.5.1'].toString());
 }
 ```
 
-### Template (`tmp`)
-The outbound message template (also E4X XML). Modify this to change what is sent to the destination.
+Under the XML data type `msg` is the document element, so for `<order><id>42</id></order>` the child is read directly:
 
 ```javascript
+// XML data type: no wrapper element to step through
+var orderId = msg['id'].toString();
+```
+
+### Template (`tmp`)
+The outbound message template. It exists only when the transformer has an outbound template, and when it does the transformer's output is taken from `tmp` rather than `msg`. Its type follows the outbound data type the same way `msg` follows the inbound one: E4X XML for XML-serialized types, a JavaScript object for JSON, a string for Raw. Modify it to change what is sent to the destination.
+
+```javascript
+// Source or destination transformer with an HL7 v2 outbound template
 tmp['MSH']['MSH.3']['MSH.3.1'] = 'NEW_SENDING_APP';
 tmp['MSH']['MSH.5']['MSH.5.1'] = 'NEW_RECEIVING_APP';
 ```
 
 ### Connector message (`connectorMessage`)
-The `ImmutableConnectorMessage` Java object with access to all content types, metadata, and status.
+The `ImmutableConnectorMessage` Java object for the message being processed, with access to all content types, metadata, and status. It is in scope in the preprocessor, filters, transformers, the response transformer, and the JavaScript Writer and Database Writer (JavaScript mode) scripts; the postprocessor has `message` (an `ImmutableMessage`) instead.
 
 ```javascript
+// channelId is already a scope variable; the source connector's metadata id is 0
 var rawContent = connectorMessage.getRawData();
-var channelId = connectorMessage.getChannelId();
 var messageId = connectorMessage.getMessageId();
+var metaDataId = connectorMessage.getMetaDataId();
 ```
 
 ## Maps
@@ -70,54 +79,66 @@ Maps provide shared variable storage across the message lifecycle.
 |---|---|---|
 | `sourceMap` | Current message, source metadata | Read/write in most contexts; read-only in attachment and batch scripts |
 | `connectorMap` | Current message, current connector | Read/write in current connector scripts |
-| `channelMap` | Current message, all connectors | Read/write in all channel scripts |
+| `channelMap` | Current message, all connectors | Read/write while a message is processed; read-only in the postprocessor |
 | `responseMap` | Current message, response data | Read/write; stores destination responses |
 | `globalChannelMap` | All messages in this channel | Persists across messages |
 | `globalMap` | All channels on the server | Persists across channels |
 | `configurationMap` | Server-wide configuration | Read-only; set in server settings |
 
+Every script scope also defines a shorthand function per map: `$co` (connectorMap), `$c` (channelMap), `$s` (sourceMap), `$gc` (globalChannelMap), `$g` (globalMap), `$cfg` (configurationMap), and `$r` (responseMap). One argument reads a key, two arguments write it. `$(key)` reads only: it searches the response, connector, channel, source, global channel, global, and configuration maps in that order and returns `''` when no map holds the key. A shorthand for a map that is not in the current scope throws a `ReferenceError`, for example `$co` in a deploy script.
+
+In the postprocessor the channel map comes from an `ImmutableConnectorMessage` built without modifiable maps, so `channelMap.put` and `$c(key, value)` throw `UnsupportedOperationException` there. The postprocessor reads the maps and may return a `Response`; a per-message fact that must be recorded is written to the channel map from a transformer or a destination script.
+
 ### Usage
 ```javascript
-// Write to a map
-channelMap.put('patientId', msg['PID']['PID.3']['PID.3.1'].toString());
+// Source transformer, HL7 v2 inbound. A per-message fact goes in the channel map,
+// which the Message Browser shows on the message. $c is channelMap.get/put.
+$c('patientId', msg['PID']['PID.3']['PID.3.1'].toString());
+var patientId = $c('patientId');
+channelMap.put('messageType', msg['MSH']['MSH.9']['MSH.9.1'].toString());
 
-// Read from a map
-var patientId = channelMap.get('patientId');
+// A channel map key is ${patientId} in Velocity template fields such as a File Writer path
 
-// Access in Velocity template fields (e.g. File Writer path) using ${patientId}
-// In JavaScript, always use channelMap.get('patientId')
+// A value that outlives the message and belongs to this channel: globalChannelMap
+$gc('lastProcessedTime', new Date().toString());
+var lastTime = $gc('lastProcessedTime');
 
-// Global map (persists across messages)
-globalMap.put('lastProcessedTime', new Date().toString());
-var lastTime = globalMap.get('lastProcessedTime');
+// globalMap is shared by every channel on the server; read a value the deploy script stored
+var siteCode = $g('siteCode');
 
-// Configuration map (read-only, set in Settings)
-var apiKey = configurationMap.get('externalApiKey');
+// Configuration map, set in Settings
+var apiKey = $cfg('externalApiKey');
+
+// $(key) searches the maps in order and returns '' when no map has the key
+var lookup = $('patientId');
 ```
 
 ## Utility classes
 
-These Java classes are available in all script contexts:
+These Java classes are available in all script contexts; `com.mirth.connect.userutil` and `com.mirth.connect.server.userutil` are imported into every scope. `DatabaseConnectionFactory` is an instance the engine places in scope rather than a static class.
 
 ### ChannelUtil
 ```javascript
-// Get channel name/ID
+// channelId and channelName are scope variables in every channel script
 var name = ChannelUtil.getDeployedChannelName(channelId);
 var id = ChannelUtil.getDeployedChannelId(channelName);
 
-// Get channel status
-var status = ChannelUtil.getConnectorState(channelId, metaDataId);
+// Channel state, returned as a DeployedState
+var state = ChannelUtil.getChannelState(channelId);
+
+// One connector's state; the source connector has metadata id 0
+var sourceState = ChannelUtil.getConnectorState(channelId, 0);
 ```
 
 ### DateUtil
 ```javascript
-// Format dates
-var formatted = DateUtil.formatDate('yyyyMMddHHmmss', date);
-
-// Parse date strings
+// Parse a date string; throws when the input does not match the pattern
 var date = DateUtil.getDate('yyyyMMddHHmmss', '20240101120000');
 
-// Convert between formats
+// Format a java.util.Date
+var formatted = DateUtil.formatDate('yyyy-MM-dd', date);
+
+// Convert between formats in one call
 var result = DateUtil.convertDate('yyyyMMddHHmmss', 'yyyy-MM-dd', '20240101120000');
 ```
 
@@ -131,23 +152,33 @@ FileUtil.write('/path/to/output.txt', false, content); // false = don't append
 ```
 
 ### DatabaseConnectionFactory
+`createDatabaseConnection` opens a plain JDBC connection, not a pooled one, and the engine never closes it, so close it in `finally`. `executeCachedQuery` returns a JDBC `CachedRowSet`; a JavaScript array is accepted for the parameter list. Any script context; here a transformer reading `patientId` from the channel map and the credentials from the configuration map, which is set in server settings.
+
 ```javascript
-// Create a database connection
-var conn = DatabaseConnectionFactory.createDatabaseConnection(driver, url, user, pass);
-var result = conn.executeCachedQuery('SELECT * FROM patients WHERE id = ?', [patientId]);
-while (result.next()) {
-    var name = result.getString('name');
+var patientId = $c('patientId');
+var conn = DatabaseConnectionFactory.createDatabaseConnection('org.postgresql.Driver', 'jdbc:postgresql://dbhost:5432/clinical', $cfg('clinicalDbUser'), $cfg('clinicalDbPassword'));
+var names = [];
+try {
+    var result = conn.executeCachedQuery('SELECT name FROM patients WHERE id = ?', [patientId]);
+    while (result.next()) {
+        names.push(result.getString('name'));
+    }
+} finally {
+    conn.close();
 }
-conn.close();
 ```
 
 ### HTTPUtil
 ```javascript
-// Parse HTTP headers into a Map
+// Parse a block of HTTP header lines into a java.util.Map of name to value
+var headerString = 'Content-Type: text/plain\r\nX-Request-Id: 42\r\n';
 var headers = HTTPUtil.parseHeaders(headerString);
+var requestId = headers.get('X-Request-Id');
 ```
 
 ### SMTPConnectionFactory
+`createSMTPConnection()` takes the host, port, credentials, and default from address from the server's SMTP settings.
+
 ```javascript
 // Send email from scripts
 var smtp = SMTPConnectionFactory.createSMTPConnection();
@@ -156,27 +187,34 @@ smtp.send('to@example.com', 'cc@example.com', 'from@example.com', 'Subject', 'Bo
 
 ### VMRouter
 ```javascript
-// Route messages to other channels
-var router = new VMRouter();
-var response = router.routeMessage('targetChannelName', 'message content');
+// router is a VMRouter instance the engine places in every script context.
+// routeMessage returns the Response the target channel's source connector selected,
+// null when it selects none (the default), and a Response with status ERROR when
+// the dispatch itself fails. Here a transformer records the status on the message.
+var routeResult = router.routeMessage('targetChannelName', 'message content');
+if (routeResult != null) {
+    $c('routeStatus', routeResult.getStatus().toString());
+}
 router.routeMessageByChannelId('channel-uuid', 'message content');
 ```
 
 ### AttachmentUtil
 ```javascript
-// Access message attachments
+// Any context that has connectorMessage (see Connector message above)
 var attachments = AttachmentUtil.getMessageAttachments(connectorMessage);
 ```
 
 ### SerializerFactory
 ```javascript
-// Create data type serializers
+// Create a serializer for a data type by its plugin name
 var serializer = SerializerFactory.getSerializer('HL7V2');
-var xml = serializer.toXML('MSH|^~\\&|...');
-var hl7 = serializer.fromXML(xmlString);
+var xml = serializer.toXML('MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260904091500||ADT^A01|MSG00001|P|2.5.1');
+var hl7 = serializer.fromXML(xml);
 ```
 
 ### ResponseFactory
+A `Response` is what the postprocessor and a JavaScript Writer return to set the message's response.
+
 ```javascript
 // Create custom responses
 var response = ResponseFactory.getSentResponse('Custom ACK message');
@@ -185,23 +223,32 @@ var errorResponse = ResponseFactory.getErrorResponse('Processing failed');
 
 ### DICOMUtil
 ```javascript
-// DICOM-specific utilities
+// Any context that has connectorMessage; the channel's data type is DICOM.
+// Merged DICOM data (header plus attachments) as a Base64 string
 var rawData = DICOMUtil.getDICOMRawData(connectorMessage);
+
+// The same merged data as a byte array; getDICOMMessage returns the same byte array
 var rawBytes = DICOMUtil.getDICOMRawBytes(connectorMessage);
 var dicomMessage = DICOMUtil.getDICOMMessage(connectorMessage);
 ```
 
 ### HashUtil
 ```javascript
-// Generate SHA-256 hash (default algorithm)
+var data = 'text to hash';
+
+// SHA-256 hex digest (default algorithm)
 var hash = HashUtil.generate(data);
 
-// Generate hash with specific algorithm and encoding
+// Hex digest with an explicit character encoding and algorithm
 var md5 = HashUtil.generate(data, 'UTF-8', 'MD5');
 ```
 
 ### EncryptionUtil
+Both calls use the server's own configured encryptor, so a value encrypted here is decrypted only by a server with the same key.
+
 ```javascript
+var data = 'text to protect';
+
 // Encrypt/decrypt data
 var encrypted = EncryptionUtil.encrypt(data);
 var decrypted = EncryptionUtil.decrypt(encrypted);
@@ -209,13 +256,24 @@ var decrypted = EncryptionUtil.decrypt(encrypted);
 
 ## Logging
 
+`logger` is in every script context. It is a Log4j logger named for the script type (list below), and the shipped `log4j2.properties` sets every script logger to DEBUG, so anything a script logs is written to `mirth.log`. Log at deploy or undeploy time and in `catch` blocks; a per-message fact belongs in the channel map, which the Message Browser shows on the message. Prefix `channelName` wherever it is in scope: channel scripts have it, the global deploy and undeploy scripts do not, and it is null in the postprocessor.
+
 ```javascript
-// Logger is available in all contexts
-logger.info('Processing message: ' + connectorMessage.getMessageId());
-logger.debug('Patient name: ' + patientName);
-logger.warn('Missing field PID.5');
-logger.error('Failed to process message', e);
+// Channel deploy script. channelName is in scope here.
+logger.info(channelName + ': deploy started');
+
+try {
+    var lookup = FileUtil.read('/path/to/lookup.csv');
+    $gc('lookup', lookup);
+} catch (e) {
+    // A failed Java call arrives as a JavaScript error wrapping the Throwable in e.javaException.
+    // Passing e itself binds error(String, Object) and logs no stack trace.
+    logger.error(channelName + ': deploy failed', e.javaException || e);
+    throw e;
+}
 ```
+
+When the deploy script throws, the engine logs the error itself with its stack trace, records a server event, and the deploy fails. The rethrow is what fails the deploy; without it the deploy continues with nothing stored under `lookup`.
 
 Logs are written according to the `log4j2.properties` configuration. Script-specific logger names:
 - `filter` - Filter and transformer script logs
@@ -229,37 +287,38 @@ Logs are written according to the `log4j2.properties` configuration. Script-spec
 
 ## Destination set
 
-Control which destinations process the current message:
+`destinationSet` exists in the preprocessor and in the source filter and transformer, where it controls which destinations receive the current message. A destination is addressed by its connector name or its metadata id (destinations start at 1). Each call returns `true` when at least one destination was removed.
 
 ```javascript
-// Remove a destination by name or metadata ID (skip it)
-destinationSet.remove(destinationName);
+// Source transformer
+var removed = destinationSet.remove('Backup Writer');
 
-// Remove all except specified destination
-destinationSet.removeAllExcept(destinationName);
+// Remove every destination except one
+destinationSet.removeAllExcept('Primary Sender');
 
-// Remove all destinations
+// A JavaScript array removes several at once, by name or metadata id
+destinationSet.remove(['Backup Writer', 3]);
+
+// Remove all destinations; the source message is not marked FILTERED
 destinationSet.removeAll();
-
-// Multiple destinations can be passed as a collection
-destinationSet.remove([destinationName1, destinationName2]);
 ```
 
 ## Java interop
 
-Since Rhino runs on the JVM, you can access Java classes directly:
+Since Rhino runs on the JVM, you can access Java classes directly. `importPackage` is not local to the script that calls it: name lookup in every script falls through to a sealed scope shared by all channels with the same library resources (channels with none share one for the life of the server), and `importPackage` adds the package to that shared scope. Scripts in other channels then resolve the bare class names without importing, and a second package holding a class of the same name makes that name an `Ambiguous import` error in scripts that imported neither. Alias the class with `var` or use its fully qualified name.
 
 ```javascript
-// Import Java classes
+// Alias a Java class (the userutil packages are already imported)
 var ArrayList = java.util.ArrayList;
 var list = new ArrayList();
 list.add('item1');
 
-// Use Java packages
+// Use a fully qualified name
 var File = java.io.File;
 var file = new File('/path/to/file');
-
-// Access static methods
 var uuid = java.util.UUID.randomUUID().toString();
+
+// Static methods; encodeToString needs a byte[], not a JavaScript string
+var bytes = new java.lang.String('hello').getBytes('UTF-8');
 var base64 = java.util.Base64.getEncoder().encodeToString(bytes);
 ```

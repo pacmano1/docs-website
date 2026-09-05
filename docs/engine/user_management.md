@@ -83,23 +83,27 @@ Both password fields must match exactly. The username must not already exist in 
 
 ## Password policy
 
-Password requirements are controlled through properties in `conf/mirth.properties`. By default all constraints are disabled (set to `0`), meaning any password is accepted.
+Password requirements are controlled through properties in `conf/mirth.properties`. By default all constraints are disabled (set to `0`), meaning any password is accepted. The server reads these properties once, when it starts, so a change takes effect at the next restart.
 
 | Property | Description | Default |
 |---|---|---|
 | `password.minlength` | Minimum number of characters | `0` |
-| `password.minupper` | Minimum uppercase letters | `0` |
-| `password.minlower` | Minimum lowercase letters | `0` |
-| `password.minnumeric` | Minimum digit characters | `0` |
-| `password.minspecial` | Minimum special characters | `0` |
-| `password.retrylimit` | Failed login attempts before the account is locked | `0` (no limit) |
-| `password.lockoutperiod` | Hours to keep the account locked (0 = locked until an admin unlocks it) | `0` |
+| `password.minupper` | Minimum uppercase letters (-1 = none allowed) | `0` |
+| `password.minlower` | Minimum lowercase letters (-1 = none allowed) | `0` |
+| `password.minnumeric` | Minimum digits (-1 = none allowed) | `0` |
+| `password.minspecial` | Minimum special characters (-1 = none allowed) | `0` |
+| `password.retrylimit` | Consecutive failed logins allowed before the account locks. With `5` the sixth failure locks it (0 = no lockout) | `0` |
+| `password.lockoutperiod` | Hours the account stays locked. The failure count is also cleared once this many hours pass after the last failed login. With `0` the account never locks, whatever `password.retrylimit` says | `0` |
 | `password.expiration` | Days until the password expires (0 = never) | `0` |
-| `password.graceperiod` | Days of grace after expiration during which the user can still log in | `0` |
-| `password.reuseperiod` | Days that must pass before a previous password can be reused | `0` |
-| `password.reuselimit` | Number of recent passwords that cannot be reused | `0` |
+| `password.graceperiod` | Days the user can still log in after the password expires, counted from the first login after expiry. Each of those logins asks for a new password (0 = unlimited, -1 = no grace, the login is refused) | `0` |
+| `password.reuseperiod` | A password set within this many days cannot be set again (0 = no limit, -1 = never again) | `0` |
+| `password.reuselimit` | Times a password already in the user's history may be set again (0 = no limit, -1 = never again) | `0` |
 
-### Recommended production settings
+A special character is one of ``! " # $ % & ' ( ) * + , / : ; < = > ? @ [ ] ^ _ ` ~``. A space, hyphen, period, backslash, `{`, `|`, and `}` do not count.
+
+### Example
+
+The password requirements section of `conf/mirth.properties` with a policy set:
 
 ```properties
 password.minlength = 8
@@ -110,8 +114,12 @@ password.minspecial = 1
 password.retrylimit = 5
 password.lockoutperiod = 1
 password.expiration = 90
-password.reuselimit = 5
+password.graceperiod = 7
+password.reuseperiod = 0
+password.reuselimit = -1
 ```
+
+With these values a new password needs at least eight characters including an uppercase letter, a lowercase letter, a digit, and a special character, and any password the user has had before is rejected with "You cannot reuse the same password." The sixth consecutive failed login locks the account for an hour; while it is locked, a login is refused before the password is checked and the message says how long remains. The password expires 90 days after it was set. For seven days from the first login after that, the login still succeeds and the user is asked to change the password. After that the login is refused until an administrator sets a new password, for example with `user changepw`.
 
 ## First login
 

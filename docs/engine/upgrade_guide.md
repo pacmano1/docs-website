@@ -23,7 +23,7 @@ Before upgrading, create backups of:
 - **Custom database driver entries**: If you have added entries to `conf/dbdrivers.xml`, back up that file
 - **JVM parameters**: If you have modified heap size or other JVM settings, back up all `*.vmoptions` files in the installation directory
 - **CLI configuration**: If you have customized `conf/mirth-cli-config.properties`, back up that file
-- **Custom libraries** (`custom-lib/`): Any user-provided JARs
+- **Custom libraries**: If you created a `custom-lib/` directory for your own JARs, back it up. The install does not create it, and the launcher only reads it when `server.includecustomlib` is not `false`
 
 ### 2. Review release notes
 
@@ -59,7 +59,7 @@ The platform installer supports in-place upgrades:
 1. Exit and stop the **Administrator** and **server service/daemon** before proceeding
 2. Run the new version installer, choosing the update option
 3. Point it to the existing installation directory
-4. The installer preserves your `appdata/`, `conf/`, `custom-lib/`, and other user data
+4. The installer preserves `appdata/`, `conf/`, and any directory you created yourself, such as `custom-lib/`
 5. Restore any custom changes you made to `*.vmoptions` files and `conf/mirth-cli-config.properties` (the installer may overwrite these with new defaults)
 6. Start the server
 7. The server automatically runs any required database schema migrations on startup
@@ -73,20 +73,28 @@ For archive-based installations (ZIP/TAR.GZ):
 3. Extract the new version to a temporary location
 4. Copy your existing `conf/mirth.properties` to the new installation
 5. Copy your `appdata/` directory to the new installation
-6. Copy any `custom-lib/` files
+6. Copy `custom-lib/` if you created one
 7. Copy any custom extensions from `extensions/`
 8. Restore custom changes to `conf/dbdrivers.xml`, `*.vmoptions`, and `conf/mirth-cli-config.properties` as needed
 9. Start the server from the new installation directory
 
 ### Using Docker
 
-Update the image tag in your Docker configuration:
+A container is upgraded by replacing it. `docker pull` only downloads the new image; the running container keeps the old one until you remove it and start a new container from the new tag. The image declares `/opt/engine/appdata` as a volume, and that is where the embedded Derby database and the keystore live, so the new container must mount the same volume or the server starts with a new, empty database. In the example the container is named `oie` and its data is the named volume `oie-appdata`. Repeat every other option the old container was started with, including environment variables, published ports, and the `custom-extensions` mount if you use one. `<new-version>` has to be a tag that is published on [Docker Hub](https://hub.docker.com/u/openintegrationengine); a tag that is not there cannot be pulled.
 
 ```bash
 docker pull openintegrationengine/engine:<new-version>
+docker stop oie
+docker rm oie
+docker run -d --name oie \
+  -p 8443:8443 \
+  -v oie-appdata:/opt/engine/appdata \
+  openintegrationengine/engine:<new-version>
 ```
 
-Ensure your data volumes are preserved across container updates.
+With Compose, change the `image:` tag in `compose.yaml` and run `docker compose up -d`, which recreates the container from the new image. The new container runs any required schema migration at startup, the same as an installer upgrade.
+
+The archive procedure's step of copying `conf/mirth.properties` has no counterpart here. The image declares no volume for `conf/`, so a new container starts with the image's own `conf/`, and anything you set through the old container's environment or mounts has to be passed to the new one again.
 
 ## After the upgrade
 
@@ -100,7 +108,7 @@ Check the server logs (`logs/mirth.log`) for:
 
 ### 2. Check Database Tasks
 
-Navigate to **Settings > Database Tasks** in the Administrator. Some upgrades create cleanup or optimization tasks for the underlying database. If no tasks appear, the database is up to date.
+Navigate to **Settings > Database Tasks** in the Administrator. Some upgrades create cleanup or optimization tasks for the underlying database. If the list is empty there is nothing to run.
 
 - These tasks are **not** run automatically. You must select a task row and click **Run Task** in the task panel on the left
 - Some tasks require affected channels to be **stopped** before they can execute

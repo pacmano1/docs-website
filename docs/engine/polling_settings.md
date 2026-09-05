@@ -11,15 +11,15 @@ Source connectors that poll for data (Database Reader, File Reader, JavaScript R
 
 ### Interval
 
-Polls at a fixed interval, starting from when the channel is deployed.
+Polls at a fixed interval. The schedule is built when the source connector starts, and poll times are aligned to the start of the day's Active Time range, or to midnight when Active Time is All Day or the range crosses midnight. The first poll lands on the next multiple of the interval measured from that point, not one interval after the connector starts. A 6-hour interval polls at 00:00, 06:00, 12:00, and 18:00 no matter when the channel came up.
 
 | Setting | Description |
 |---|---|
-| **Polling Frequency** | Time between polls. Enter a number and select the unit: milliseconds, seconds, minutes, or hours. The value must be less than 24 hours. |
+| **Interval** | Time between polls. Enter a number and select the unit: milliseconds, seconds, minutes, or hours. The value must be greater than zero and less than 24 hours. It is stored in the channel as `pollingFrequency`, in milliseconds. |
 
 Example: Poll every 5 seconds.
 
-This is the simplest option. The timer starts when the channel deploys, and polls occur at the configured interval regardless of time of day.
+The schedule exists only while the source connector is running. Deploying a channel starts the connector unless the channel's initial state is Stopped or Paused, and a channel deployed in either of those states does not poll until it is started. With Active Time set to All Day the polls continue around the clock. Enable Poll Once on Start to get a poll the moment the connector starts, ahead of the aligned schedule.
 
 ### Time
 
@@ -43,13 +43,13 @@ Polls according to one or more cron expressions, providing the most flexible sch
 
 #### Cron expression format
 
-Cron expressions must be in Quartz format with at least 6 fields:
+The engine hands each expression to Quartz, which needs six fields plus an optional seventh field for the year:
 
-```
+```text
 second minute hour day-of-month month day-of-week [year]
 ```
 
-**Note:** Specifying both a day-of-week and day-of-month value is not supported. A `?` must be used in one of these fields.
+**Note:** Quartz cannot combine a day-of-month value with a day-of-week value, so one of the two fields must be `?`. An expression that sets both is rejected as invalid.
 
 | Field | Values | Special Characters |
 |---|---|---|
@@ -59,7 +59,7 @@ second minute hour day-of-month month day-of-week [year]
 | Day of Month | 1-31 | `, - * ? / L W` |
 | Month | 1-12 or JAN-DEC | `, - * /` |
 | Day of Week | 1-7 or SUN-SAT | `, - * ? / L #` |
-| Year (optional) | 1970-2099 | `, - * /` |
+| Year (optional) | Up to 100 years after the current year (a later year is accepted but never fires) | `, - * /` |
 
 #### Examples
 

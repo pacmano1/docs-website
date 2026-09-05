@@ -5,7 +5,7 @@ description: How OIE is structured internally
 
 # Architecture
 
-The Open Integration Engine (OIE) is an open source standards-based healthcare integration engine that enables interoperability between two systems by accepting incoming information packets, called messages, and processing them according to rules you provide. It speeds message routing, filtering, and transformation between health-info systems using various message formats (e.g., HL7, X12, EDI, DICOM, XML).
+The Open Integration Engine (OIE) is an open source integration engine for healthcare. It receives messages from one system, filters and transforms them under rules you define, and delivers them to other systems, in the formats those systems speak (HL7, X12, EDI, DICOM, XML, among others).
 
 ## Core concepts
 
@@ -13,13 +13,16 @@ The Open Integration Engine (OIE) is an open source standards-based healthcare i
 
 Channels are the fundamental building blocks of OIE. A channel is an interface you configure to receive data from a source, take actions on that data (filter, transform, extract), and send it out to one or more destinations.
 
+```text
+┌──────────┐    ┌─────────────────────────────────────────────────────┐    ┌───────────────┐
+│  Source  │───>│  OIE Channel                                        │───>│  Destination  │
+│  System  │    │  Source Connector → Source Filter/Transformer       │    │  System(s)    │
+└──────────┘    │    → Destination 1 Filter/Transformer → Connector 1 │    └───────────────┘
+                │    → Destination 2 Filter/Transformer → Connector 2 │
+                └─────────────────────────────────────────────────────┘
 ```
-┌──────────┐    ┌─────────────────────────────────────────┐    ┌─────────────────┐
-│  Source   │───>│            OIE Channel                  │───>│  Destination     │
-│  System   │    │  Source Connector → Filter/Transformer  │    │  System(s)       │
-└──────────┘    │               → Destination Connector(s) │    └─────────────────┘
-                └─────────────────────────────────────────┘
-```
+
+The source connector and each destination connector have a filter and transformer of their own. The source pair runs first; a destination's pair runs before that destination's connector sends. Destination 2 follows destination 1 in the diagram because it waits for the previous destination, which is the default; with that setting off, each destination starts a chain of its own and the chains run concurrently.
 
 Each channel has general properties including a unique ID, name, and description. Channels can also be configured with code template library links, library resources, deploy/start dependencies (to control deployment order), attachment handler settings, message storage and pruning settings, and custom metadata columns.
 
@@ -84,7 +87,7 @@ Four special scripts are associated with each channel:
 - **Deploy Script**. Runs once right before a channel is deployed.
 - **Preprocessor Script**. Runs once for every message, after the attachment handler has optionally extracted data, but before the source filter/transformer. Used to modify the incoming message.
 - **Post Processor Script**. Runs once for every message, after the source connector and all destinations have completed (excluding asynchronous processes like the destination queue), but before a response is sent back to the originating system. Has access to responses from all executed destinations and can return a custom response for the source connector to use.
-- **Undeploy Script**. Runs once right before a channel is undeployed.
+- **Undeploy Script**. Runs once after the channel has been stopped and its connectors undeployed.
 
 ## Administration interfaces
 
@@ -101,4 +104,4 @@ OIE uses a plugin architecture where connectors, data types, and other features 
 - **Server Plugins**. Background services and event handlers
 - **Transmission Mode Providers**. Frame-level protocol handling (e.g., MLLP)
 
-Extensions are discovered at runtime, so one install serves both the desktop and web administrators. A growing set of open source extensions is available beyond those bundled with the engine. See [Plugins and Extensions](./extension_catalog.md).
+Extensions are loaded from the extensions directory when the engine starts. An extension can ship a desktop UI, a web UI, or both; the web administrator serves the web side. A growing set of open source extensions is available beyond those bundled with the engine. See [Plugins and Extensions](./extension_catalog.md).

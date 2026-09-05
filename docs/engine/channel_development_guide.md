@@ -37,7 +37,7 @@ Before building, identify:
 
 ## The msg and tmp objects
 
-When a message enters a filter or transformer, it is parsed into a JavaScript variable called **msg**. Depending on the data type, `msg` may be an E4X XML object (for XML-based data types like HL7 v2.x), a JavaScript object (for JSON), or a Java String (for raw data types).
+When a message enters a filter or transformer, it is parsed into a JavaScript variable called **msg**. Depending on the data type, `msg` may be an E4X XML object (for XML-based data types like HL7 v2.x), a JavaScript object (for JSON), or a JavaScript String object (for raw data types). Under the HL7 v2.x data type the element names follow segment, field, and component: `msg['PID']['PID.5']['PID.5.1']` is the first component of PID-5, and a field with no components still gets a `.1` child, apart from MSH.1 and MSH.2, which hold the field separator and the encoding characters directly with no component child. Neither an E4X node nor the raw String object is a string primitive, so `msg['PID']['PID.8']['PID.8.1'] === 'M'` is false even when the field is `M`; call `.toString()` on the node, or on the raw `msg`, before comparing it with `===` or storing it in a map. Every sample on this page assumes the HL7 v2.x data type.
 
 The **tmp** variable is similar to `msg`, except it represents the outbound template rather than the inbound message. It is only available in the transformer when an outbound template is configured. Use `tmp` when you want to convert a message from one format to another (e.g. HL7 v2.x to JSON) or selectively include pieces of the inbound message in the outbound message.
 
@@ -69,12 +69,12 @@ Extracts data from a field in the message (or an expression) and places it into 
 | **Default Value** | Fallback value if the Mapping is not found or evaluates to empty |
 | **String Replacement** | Optional regex-based find/replace applied to the value before it is stored |
 
-Example mapping expression:
+The Mapping field is a JavaScript expression evaluated inside the transformer step, with `msg` in scope. Example mapping expression, the first component of PID-5:
 ```javascript
 msg['PID']['PID.5']['PID.5.1'].toString()
 ```
 
-Once stored, access the variable in JavaScript with the corresponding map's `.get()` method. For example, if you add to Channel Map: `channelMap.get('patientName')`.
+Once stored, read the variable in JavaScript with the map's `.get()` method or the matching shorthand function. For example, if you add to Channel Map under the variable name `patientName`: `channelMap.get('patientName')` or `$c('patientName')`. The shorthands `$co`, `$c`, `$s`, `$gc`, `$g`, `$cfg`, and `$r` read the connector, channel, source, global channel, global, configuration, and response maps with one argument and write them with two.
 
 ### Message Builder step
 
@@ -87,16 +87,16 @@ Maps a value from the message (or an expression) into a specific field in the in
 | **Default Value** | Fallback value if the Mapping is not found or evaluates to empty |
 | **String Replacement** | Optional regex-based find/replace applied to the value before it is inserted |
 
-Example, copying a field from the inbound message to the outbound template:
+Example, copying a field from the inbound message to the outbound template. The step assigns to `tmp`, so the transformer needs an outbound template for `tmp` to exist:
 - **Message Segment:** `tmp['PV1']['PV1.9']['PV1.9.1']`
 - **Mapping:** `msg['OBR']['OBR.16']['OBR.16.1'].toString()`
 
 ### JavaScript step
 
-Gives you full scripting control for complex transformations:
+Gives you full scripting control for complex transformations. The step runs inside the transformer with the same `msg` and `tmp` as the other steps. The sample below reads from the inbound message and writes into the outbound template, so the transformer needs an outbound template; without one `tmp` is never defined and the first assignment throws a ReferenceError. Both are E4X XML objects under the HL7 v2.x data type.
 
 ```javascript
-// Conditional transformation
+// Read a field from the inbound message, write the mapped value into the outbound template
 var gender = msg['PID']['PID.8']['PID.8.1'].toString();
 if (gender === 'M') {
     tmp['PID']['PID.8']['PID.8.1'] = 'Male';
@@ -161,6 +161,9 @@ The filter decides whether a message should proceed to the next step or not. It 
 When the Values table has multiple entries, conditions like Equals and Contains return true if the field matches **any** of the values. Not Equal and Not Contain return true if the field matches **none** of the values.
 
 ### JavaScript filter
+
+The engine wraps a JavaScript rule's script in its own function, so the script ends with `return` and a boolean: `true` accepts the message, `false` filters it. `msg` is the parsed inbound message, an E4X XML object under the HL7 v2.x data type.
+
 ```javascript
 // Accept only ADT^A01 messages
 var messageType = msg['MSH']['MSH.9']['MSH.9.1'].toString();
@@ -174,40 +177,57 @@ return (messageType === 'ADT' && triggerEvent === 'A01');
 
 ## Channel scripts
 
-Four scripts can be configured on the **Scripts** tab of the Edit Channel view.
+Four scripts can be configured on the **Scripts** tab of the Edit Channel view. Each runs inside a scope the engine builds for it. The objects the samples below use come from that scope:
+
+| Object | In scope for | What it is |
+|---|---|---|
+| `channelId`, `channelName` | All four | The channel's id and name. `channelName` is null in the postprocessor at 4.6.0. |
+| `globalChannelMap` | All four | A map private to this channel, shared by every script and thread of the channel and kept across messages. `globalChannelMap.get(key)` or `$gc(key)` reads it, `globalChannelMap.put(key, value)` or `$gc(key, value)` writes it. It is cleared when the channel deploys if **Clear global channel map on deploy** (Summary tab, on by default) is set, and it is never cleared on undeploy. |
+| `globalMap`, `configurationMap` | All four | The server-wide map shared by every channel, and the configuration map. Shorthands `$g` and `$cfg`. |
+| `logger` | All four | A Log4j logger named after the script: `deploy`, `undeploy`, `preprocessor`, or `postprocessor`. |
+| `message` | Preprocessor, postprocessor | In the preprocessor, the raw inbound data as a string. In the postprocessor, the completed message as an `ImmutableMessage`; `message.getMessageId()` returns its id. |
+| `sourceMap`, `channelMap`, `responseMap` | Preprocessor, postprocessor | The message's maps, shorthands `$s`, `$c`, `$r`. In the postprocessor `channelMap` is read-only: `channelMap.put(key, value)` or `$c(key, value)` throws `UnsupportedOperationException`. |
+| `connectorMap` | Preprocessor | The source connector's map, shorthand `$co`, writable. Not in the postprocessor scope. |
+| `SENT`, `ERROR`, `QUEUED`, `FILTERED`, `RECEIVED`, `TRANSFORMED`, `PENDING` | Postprocessor | The `Status` values, usable as bare names when building a `Response`. |
+
+No message exists when the deploy and undeploy scripts run, so none of the message objects are in scope there.
 
 ### Deploy script
 Runs once right before a channel is deployed. Use it to initialize variables or load resources.
 
 ```javascript
-// Initialize a message counter
-globalChannelMap.put('messageCount', 0);
+// Seed a value that every script in this channel reads back with $gc('sendingFacility')
+globalChannelMap.put('sendingFacility', 'HOSP');
 ```
 
 ### Preprocessor
-Runs once for every message, after the source connector receives the data and after attachment extraction, but before the message reaches the source filter/transformer. Use it to modify the raw inbound message.
+Runs once for every message, after the source connector receives the data and after attachment extraction, but before the message reaches the source filter/transformer. Use it to modify the raw inbound message. `message` is the raw inbound data as a string; nothing has been parsed yet, so there is no `msg`. The script must return the string the channel goes on to process: the returned value is stored as the message's processed raw content, which is what the source filter and transformer parse. Return `message` unchanged when there is nothing to change. A script that ends without a `return` does not leave the message alone at 4.6.0: the undefined result is converted to the text `undefined` and that becomes the processed raw content. `channelMap` and `connectorMap` are writable here, so a per-message fact belongs in `$c` or `$co`, where the Message Browser shows it on the message.
 
 ```javascript
-// Fix common HL7 formatting issues
-message = message.replace(/\n/g, '\r');
+// Normalize line endings in the raw string, then return it
+message = message.replace(/\r?\n/g, '\r');
 return message;
 ```
 
 ### Postprocessor
-Runs once for every message after the source connector and all destinations have completed, but before the source connector sends a response back to the originating system. The postprocessor has access to responses from all executed destinations and can return a custom response for the source connector to use.
+Runs once for every message after the source connector and all destinations have completed, but before the source connector sends a response back to the originating system. The postprocessor has access to responses from all executed destinations and can return a custom response for the source connector to use. `message` is the completed message. `responseMap.get(name)` returns the `Response` a destination produced, looked up by the destination's name; a destination removed by a Destination Set Filter step has no entry and the lookup returns null. `channelMap` is read-only here and there is no `connectorMap`. The return value is the contract: return a `Response` and the engine stores it in the source response map under the key `Postprocessor`, which is what the source connector sends back when its **Response** setting is **Postprocessor**. The `Response` message is the payload the source connector sends, verbatim; a TCP Listener writes it to the socket as the reply, so a destination's ACK is passed through unchanged. The third constructor argument, `Response(status, message, statusMessage)`, is a status message that is kept on the `Response` and not sent. Return nothing and no postprocessor response is stored. `channelName` is null in this scope at 4.6.0.
 
 ```javascript
-// Log the message ID after processing
-logger.info('Finished processing message: ' + message.getMessageId());
-return;
+// Read the response one destination produced and return it unchanged as the response the source connector sends back
+var ehrResponse = responseMap.get('Send to EHR');
+if (ehrResponse == null) {
+    return new Response(ERROR, 'Message ' + message.getMessageId() + ': no response from Send to EHR');
+}
+return new Response(ehrResponse.getStatus(), ehrResponse.getMessage(), 'Message ' + message.getMessageId() + ': response from Send to EHR');
 ```
 
 ### Undeploy script
-Runs once after a channel is undeployed. Use it to clean up any resources initialized in the deploy script.
+Runs once after a channel is undeployed. Use it to clean up any resources initialized in the deploy script. The global channel map is not cleared on undeploy, so an entry the deploy script seeded stays until the next deploy clears it or this script removes it.
 
 ```javascript
-// Log that the channel is shutting down
-logger.info('Channel undeploying');
+// Remove what the deploy script seeded, then record the undeploy once
+globalChannelMap.remove('sendingFacility');
+logger.info(channelName + ': undeployed, sendingFacility removed from the global channel map');
 ```
 
 ## Response handling
@@ -215,10 +235,10 @@ logger.info('Channel undeploying');
 The source connector's **Response** dropdown controls what is sent back to the originating system. Options include:
 
 - **None**. No response is returned
-- **Auto-generate (Before processing)**. OIE auto-generates a response from the inbound data type immediately, with a SENT status
+- **Auto-generate (Before processing)**. OIE auto-generates a response from the inbound data type immediately, with a RECEIVED status (for HL7 v2.x that is still an AA acknowledgement; only ERROR and FILTERED change the acknowledgement code)
 - **Auto-generate (After source transformer)**. OIE auto-generates a response from the inbound data type after the source filter/transformer runs
 - **Auto-generate (Destinations completed)**. OIE auto-generates a response from the inbound data type after all destinations complete, reflecting overall processing status
-- **Postprocessor**. Returns a custom response set in the postprocessor via the response map
+- **Postprocessor**. Returns the `Response` the postprocessor script returned (see [Postprocessor](#postprocessor))
 - **A specific destination**. Returns the response payload received from that destination (e.g. an ACK from a downstream system)
 
 ## Testing channels

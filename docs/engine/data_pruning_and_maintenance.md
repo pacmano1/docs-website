@@ -70,28 +70,39 @@ Set storage mode per-channel in the channel properties.
 3. Select messages and click **Remove**
 
 ### CLI
-```bash
-# Remove all messages from all channels
+
+These commands are typed at the prompt of the CLI shell, started with `java -jar mirth-cli-launcher.jar` (see [Command Line Interface](./command_line_interface.md#launching-the-cli)). They are not operating-system commands. `clearallmessages` acts on every channel: a running channel is stopped, emptied, and started again, and statistics are kept. `resetstats` resets the current statistics of every deployed channel and its connectors. `resetstats lifetime` resets current and lifetime statistics for every channel. The shell ignores anything after `#`, so the block can be pasted as is.
+
+```text
+# Remove all messages from all channels, restarting any that are running
 clearallmessages
 
-# Reset all channel statistics
-resetstats [lifetime]
+# Reset current statistics
+resetstats
+
+# Reset current and lifetime statistics
+resetstats lifetime
 ```
 
 ### REST API
+
+The request below removes every message from one channel. Run it from any shell with `curl`, with `{channelId}` replaced by the channel's ID.
+
 ```bash
-# Remove all messages for a specific channel
+# Remove all messages from one channel, restarting it if it is running
 curl -k -X DELETE \
   -H "X-Requested-With: OpenIntegrationEngine" \
   -u admin:admin \
-  "https://localhost:8443/api/channels/{channelId}/messages/_removeAll"
+  "https://localhost:8443/api/channels/{channelId}/messages/_removeAll?restartRunningChannels=true"
 ```
+
+`restartRunningChannels` defaults to false, and then a deployed channel that is not stopped is skipped: the request succeeds and nothing is removed. With it set to true the channel is stopped, emptied, and started again. A stopped or undeployed channel is emptied either way. `clearStatistics` defaults to true, so the channel's statistics are reset as well; add `&clearStatistics=false` to keep them. These defaults are the reverse of the CLI's `clearallmessages`, which restarts running channels and keeps statistics.
 
 ::: info
 The `X-Requested-With` header is required on all API requests. Any non-empty value is accepted.
 :::
 
-## Database Tasks
+## Database tasks
 
 The **Settings > Database Tasks** panel shows available database cleanup or optimization tasks. Tasks appear when applicable conditions are detected (e.g., legacy tables exist that can be removed). Each task can be triggered manually from the panel.
 
@@ -100,10 +111,10 @@ The **Settings > Database Tasks** panel shows available database cleanup or opti
 When archiving is enabled, the Data Pruner exports messages before deleting them:
 
 - Individual messages are serialized as XML files
-- Files can optionally be bundled into compressed archives (ZIP, TAR, etc. via Apache Commons Compress)
+- Files can optionally be bundled into a `zip`, `tar.gz`, or `tar.bz2` archive
 - The archive directory, file pattern, and compression format are all configurable
 - Attachment inclusion is optional (disabled by default)
-- Archives can be extracted back to the filesystem, but there is no built-in re-import to the database
+- Archives written in the default XML serialized message format can be imported back into a deployed channel with Import Messages in the Message Browser, with the CLI `importmessages` command, or through the message import endpoints of the REST API. A file, a folder, or an archive is accepted, and the importer reads archive entries in place
 
 Configure archiving in the Data Pruner settings panel.
 

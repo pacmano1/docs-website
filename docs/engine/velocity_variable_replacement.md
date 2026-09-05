@@ -11,55 +11,13 @@ OIE uses **Apache Velocity** syntax for variable substitution in connector templ
 
 Variables stored in maps are referenced using the `${}` syntax:
 
-```
+```velocity
 ${variableName}
 ```
 
 This pulls the value from the variable maps (see [Variable Map Priority](#variable-map-priority) below).
 
-### Examples
-
-**In a File Writer filename:**
-```
-message_${message.messageId}_${date.get('yyyyMMdd')}.hl7
-```
-
-**In an HTTP Sender URL:**
-```
-https://api.example.com/patients/${patientId}/records
-```
-
-**In a destination template:**
-```
-Patient: ${patientLastName}, ${patientFirstName}
-MRN: ${medicalRecordNumber}
-```
-
-## Conditional statements
-
-Velocity supports `#if` / `#else` / `#elseif` / `#end` for conditional logic within templates:
-
-```text
-#if(${gender} == "M")
-Male
-#elseif(${gender} == "F")
-Female
-#else
-Unknown
-#end
-```
-
-This is useful when the output format varies based on message content without needing a full JavaScript transformer step.
-
-## For loops
-
-Velocity supports `#foreach` loops for iterating over collections:
-
-```text
-#foreach($item in ${itemList})
-Item: ${item}
-#end
-```
+A key you name yourself, such as `patientId`, is in a map only because a transformer step stored it: a [Mapper step](./filters_and_transformers.md#mapper-step) writes to the map chosen by its scope setting (the channel map by default), and a JavaScript step calls `channelMap.put('patientId', value)`.
 
 ## Variable map priority
 
@@ -75,9 +33,11 @@ When you reference `${variableName}`, OIE loads all variable maps into a single 
 
 If no match is found, the literal string `${variableName}` is output.
 
+A template with a Velocity syntax error is not replaced at all: the engine logs `Could not replace template values` at WARN and uses the field's text as written.
+
 ## Standard variables and templates
 
-Several built-in variables are always available in Velocity templates:
+The utility variables `date`, `DATE`, `COUNT`, `UUID` and `SYSTIME` go into the context first, so a key with the same name in any map replaces them. `message`, `channelId`, `channelName` and `HASH` go in after the configuration, global and global channel maps and before the source, channel, connector and response maps, so only a key in one of those four per-message maps replaces them. `originalFilename` is set to its timestamp default only when no map supplied one. The `message` properties, `${HASH}` and `${originalFilename}` exist only when a template is replaced for a connector message, as the destination connector fields in the examples below are. A field replaced without a message, such as the File Reader directory, gets the utility variables, `${channelId}`, `${channelName}`, and the global channel, global and configuration maps only. There `${channelId}` and `${channelName}` go in before the global channel map, so a global channel map key with the same name replaces them.
 
 ### Message properties
 
@@ -108,10 +68,54 @@ Several built-in variables are always available in Velocity templates:
 
 ### Date formatting examples
 
-```
+```text
 ${date.get('yyyyMMdd')}          → 20240101
 ${date.get('yyyy-MM-dd HH:mm')} → 2024-01-01 12:00
 ${date.get('yyyyMMddHHmmss')}   → 20240101120000
+```
+
+## Examples
+
+Each example is a destination connector field, replaced for each message with that message's maps in the context. `message` and `date` are the built-in objects listed above. `patientId`, `patientLastName`, `patientFirstName` and `medicalRecordNumber` are keys a transformer step stored in the channel map.
+
+**In a File Writer filename:**
+```velocity
+message_${message.messageId}_${date.get('yyyyMMdd')}.hl7
+```
+
+**In an HTTP Sender URL:**
+```velocity
+https://api.example.com/patients/${patientId}/records
+```
+
+**In a destination template:**
+```velocity
+Patient: ${patientLastName}, ${patientFirstName}
+MRN: ${medicalRecordNumber}
+```
+
+## Conditional statements
+
+Velocity supports `#if` / `#else` / `#elseif` / `#end` for conditional logic within templates. `gender` here is a channel map key stored by a transformer step. A key that is in none of the maps compares as not equal, so the `#else` branch is taken and no error is raised:
+
+```velocity
+#if(${gender} == "M")
+Male
+#elseif(${gender} == "F")
+Female
+#else
+Unknown
+#end
+```
+
+## For loops
+
+Velocity supports `#foreach` loops for iterating over collections. `itemList` must be a collection a transformer step stored in a map: a JavaScript array and a `java.util.List` both iterate. If the key is missing, or its value is not a collection (a string, for example), the loop produces no output and no error. `${item}` and `$item` are the same reference; the braces only mark where the name ends:
+
+```velocity
+#foreach(${item} in ${itemList})
+Item: ${item}
+#end
 ```
 
 ## Where Velocity is used
@@ -136,5 +140,3 @@ ${date.get('yyyyMMddHHmmss')}   → 20240101120000
 | **Conditionals** | `#if/#else/#end` | `if/else` |
 | **Loops** | `#foreach` | `for`, `while` |
 | **Power** | Lightweight substitution | Full programming language |
-
-Use Velocity for simple value insertion. Use JavaScript transformer steps for complex logic, calculations, and external lookups.

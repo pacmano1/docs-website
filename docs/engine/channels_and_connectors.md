@@ -11,18 +11,20 @@ Channels are the primary building blocks in OIE. A channel represents a complete
 
 A channel is made up of **connectors**. There are two kinds: a **source connector** brings data into OIE, while a **destination connector** pushes data out to an external system. Every channel has one source connector and one or more destinations. This means a single channel can take data from one place and deliver it to several different targets. For instance, receiving an HL7 message over TCP and simultaneously writing it to a file and inserting selected fields into a database.
 
+```text
+┌────────────────────────────────────────────────────────────┐
+│                          Channel                           │
+│                                                            │
+│  ┌────────────┐    ┌──────────────┐    ┌──────────────┐    │
+│  │   Source   │───>│   Filters    │───>│ Destination  │    │
+│  │ Connector  │    │ Transformers │    │ Connector(s) │    │
+│  └────────────┘    └──────────────┘    └──────────────┘    │
+│                                                            │
+│  Scripts: Deploy | Preprocessor | Postprocessor | Undeploy │
+└────────────────────────────────────────────────────────────┘
 ```
-┌──────────────────────────────────────────────────────────┐
-│                        Channel                           │
-│                                                          │
-│  ┌────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │   Source    │───>│   Filters    │───>│ Destination  │  │
-│  │ Connector   │    │ Transformers │    │ Connector(s) │  │
-│  └────────────┘    └──────────────┘    └──────────────┘  │
-│                                                          │
-│  Scripts: Deploy | Preprocessor | Post Processor | Undeploy│
-└──────────────────────────────────────────────────────────┘
-```
+
+The filters and transformers are drawn once here for simplicity. Every connector, source and destination alike, has its own filter and transformer; see [Connector components](#connector-components).
 
 ## General channel properties
 
@@ -63,7 +65,7 @@ Each channel has four configurable scripts that run at specific points in the li
 |---|---|
 | **Deploy Script** | Executes once immediately before the channel is deployed |
 | **Preprocessor Script** | Fires for each message, after the source connector receives it and after any attachment extraction, but before filtering and transformation begin. Used to modify the raw message. |
-| **Post Processor Script** | Fires for each message after the source and all destinations have finished (not counting asynchronous queue processing), but before the source connector sends its response. Has access to destination responses and can return a custom reply for the source to use. |
+| **Postprocessor Script** | Fires for each message after the source and all destinations have finished (not counting asynchronous queue processing), but before the source connector sends its response. Has access to destination responses and can return a custom reply for the source to use. |
 | **Undeploy Script** | Executes once after the channel is undeployed |
 
 ## Connector components
@@ -92,7 +94,7 @@ Destinations within a channel are organized into **chains**. Chains run in paral
 
 For example, with 5 destinations where Destination 3 does not wait on Destination 2 (starting a new chain):
 
-```
+```text
 Source Connector
        │
        ▼
@@ -105,15 +107,15 @@ Chain 1   Chain 2
 Dest 1    Dest 3
   │         │
 Dest 2    Dest 4
-            │
-          Dest 5
+  │         │
+  │       Dest 5
   │         │
   └────┬────┘
        │
   Postprocessor
 ```
 
-Here, Chain 1 (Dest 1 and 2) and Chain 2 (Dest 3, 4, and 5) run concurrently. If each destination takes 1 second, total processing time is 3 seconds (the longer chain) rather than 5.
+Here, Chain 1 (Dest 1 and 2) and Chain 2 (Dest 3, 4, and 5) run concurrently. If each destination takes 1 second, total processing time is 3 seconds (the longer chain) rather than 5. The source connector's filter and transformer, which run after the preprocessor and before the chains start, are left out of the diagram.
 
 ## Channel groups
 
