@@ -197,9 +197,6 @@ donkey.statsupdateinterval = 1000
 ## API security
 
 ```properties
-# Allow API access over the HTTP port (default: false, HTTPS only)
-server.api.allowhttp = false
-
 # Require X-Requested-With header on API requests (CSRF protection)
 server.api.require-requested-with = true
 

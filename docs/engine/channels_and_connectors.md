@@ -78,7 +78,7 @@ Each connector is identified by a name and a **metadata ID**. The source connect
 
 ### Connector-specific properties
 
-The configuration fields vary by connector type. A TCP Listener has completely different settings from a Database Writer, for instance. See the [Connector Reference](./connector_reference.md) for specifics.
+The configuration fields vary by connector type. A TCP Listener has completely different settings from a Database Writer, for instance. See [Source Connectors](./connector_reference_sources.md) and [Destination Connectors](./connector_reference_destinations.md) for specifics.
 
 ### Filter
 
@@ -136,7 +136,7 @@ Channels can be sorted into **groups** for organizational purposes. Groups have 
 
 ## Connector types
 
-See [Connector Reference](./connector_reference.md) for detailed documentation on each connector type.
+See [Source Connectors](./connector_reference_sources.md) and [Destination Connectors](./connector_reference_destinations.md) for every setting each type exposes.
 
 ### Source connectors
 | Connector | Protocol/Method |

@@ -28,7 +28,7 @@ Every context also has `logger`, `router` (a `VMRouter`), `replacer`, `DatabaseC
 ## Core objects
 
 ### Message (`msg`)
-The parsed message object, available in filters and transformers. Its type follows the inbound data type: for XML-serialized types (HL7 v2 included) it is an E4X `XML` object, for JSON a JavaScript object, and for Raw a string. The E4X object is the document element itself, so its children are addressed directly. HL7 v2 is serialized to XML with an `HL7Message` document element whose children are segments (`PID`), fields (`PID.5`), and components (`PID.5.1`); bracket paths of that form work only under the HL7 v2 data type. `for each` is the E4X loop over an `XMLList`.
+The parsed message object, available in filters and transformers. Its type follows the inbound data type: for XML-based types (HL7 v2 included) it is an E4X `XML` object, for JSON a JavaScript object, and for Raw a string. The E4X object is the document element itself, so its children are addressed directly. HL7 v2 is parsed into XML with an `HL7Message` document element whose children are segments (`PID`), fields (`PID.5`), and components (`PID.5.1`); bracket paths of that form work only under the HL7 v2 data type. `for each` is the E4X loop over an `XMLList`.
 
 ```javascript
 // Source or destination filter/transformer, HL7 v2 data type: segment, field, component
@@ -53,7 +53,7 @@ var orderId = msg['id'].toString();
 ```
 
 ### Template (`tmp`)
-The outbound message template. It exists only when the transformer has an outbound template, and when it does the transformer's output is taken from `tmp` rather than `msg`. Its type follows the outbound data type the same way `msg` follows the inbound one: E4X XML for XML-serialized types, a JavaScript object for JSON, a string for Raw. Modify it to change what is sent to the destination.
+The outbound message template. It exists only when the transformer has an outbound template, and when it does the transformer's output is taken from `tmp` rather than `msg`. Its type follows the outbound data type the same way `msg` follows the inbound one: E4X XML for XML-based types, a JavaScript object for JSON, a string for Raw. Modify it to change what is sent to the destination.
 
 ```javascript
 // Source or destination transformer with an HL7 v2 outbound template

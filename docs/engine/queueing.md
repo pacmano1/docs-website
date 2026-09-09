@@ -22,7 +22,11 @@ With the queue on, the sender's response is limited to **None** or **Auto-genera
 
 The number of source queue threads equals **Max Processing Threads**. With more than one, messages leave the queue in id order but are processed at the same time, so order is not preserved. See [Threading and Ordering](./threading_and_ordering.md).
 
-A source queue message is recovered by the queue itself. On start, the source queue picks up every source connector message still in RECEIVED and processes it, which is also how messages that were received but never processed before a crash are handled in Development and Production storage modes.
+Recovery of source connector messages left in RECEIVED takes one of two paths, and which one runs depends on whether the source queue is on.
+
+With the source queue on, recovery skips them deliberately and leaves them to the queue: on start the queue picks up every source connector message still in RECEIVED and processes it. This path works wherever a source queue is allowed at all, which includes Raw storage mode.
+
+With the source queue off, the recovery task reprocesses those rows itself, and only then does the storage mode matter. That path is disabled in Raw and Metadata modes, so it runs in Development and Production only.
 
 **Queue Buffer Size** sets the in-memory buffer for this channel and is enabled only when the queue is on. It defaults to the server setting **Default Queue Buffer Size**, `server.queuebuffersize`, which is 1000 unless changed. The same default applies to destination queues.
 
@@ -32,7 +36,7 @@ A source queue message is recovered by the queue itself. On start, the source qu
 
 **Queue Messages** on each destination has three options. Underneath they are two stored booleans, `queueEnabled` and `sendFirst`.
 
-| Option | Behaviour |
+| Option | Behavior |
 |---|---|
 | **Never** | Queueing off. The message is sent on the processing thread. A failure, after any retries, ends in ERROR. |
 | **On Failure** | Try to send on the processing thread first. If that fails, or if the queue already holds messages, the message goes to the queue. |
@@ -117,7 +121,7 @@ A single destination can be stopped on its own only when its queueing is enabled
 
 ## Consequences worth knowing
 
-- The Data Pruner never removes a message that has a connector message in QUEUED, PENDING, or ERROR status. A queue that never drains grows the database until someone deals with it.
+- The Data Pruner never removes a message that has a connector message in QUEUED or PENDING status. ERROR is also skipped by default, but unlike the other two it can be pruned when a channel is configured to prune errored messages. A queue that never drains grows the database until someone deals with it.
 - Queues are scoped to a server id. Each server processes only the rows it wrote.
 - Removing a queued message from the Message Browser, or removing all messages, is handled by the queue but logs an error for the interrupted attempt with the text "This error is expected if the message was manually removed from the queue." Removing all messages requires the channel to be stopped.
 - Reducing a queue's buffer size below the current buffer contents clears the buffer; it refills from the database.

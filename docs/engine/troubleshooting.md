@@ -11,7 +11,22 @@ description: Symptoms and causes for a server that will not start, an Administra
 
 **Symptom:** an error about a missing Java runtime or an unsupported version.
 
-Confirm the version with `java -version`; OIE 4.6.0 requires Java 17 or later. If more than one runtime is installed, point the launcher at the right one with `JAVA_HOME`, or set `-java-cmd` in `conf/custom.vmoptions` to an absolute path to the `java` binary. SDKMAN users can run `sdk env install` in the source tree to pick up the version the project declares.
+Confirm the version with `java -version`; OIE 4.6.0 requires Java 17 or later.
+
+If more than one runtime is installed, the launcher picks one in a fixed order and uses the
+first it finds that is version 17 or higher:
+
+1. `OIE_JAVA_PATH`, an environment variable holding the full path to the `java` executable.
+   Highest priority, and validated immediately: if it points at something that is not a
+   suitable Java executable, the launcher stops rather than falling through to the next entry.
+2. `-java-cmd` in `conf/custom.vmoptions`, the path to the `java` executable. This is the
+   launcher's own preferred way to declare a version, and it may be a path relative to the
+   script. `OIE_JAVA_PATH` overrides it.
+3. `JAVA_HOME`.
+4. Whatever `java` resolves to on the `PATH`.
+
+SDKMAN users can run `sdk env install` in the source tree to pick up the version the project
+declares.
 
 ### Port already in use
 
@@ -26,7 +41,8 @@ https.port = 8443
 
 ### Database connection failed
 
-**Symptom:** `Unable to connect to database`.
+**Symptom:** `Error establishing connection to database, retrying startup in <n> milliseconds`,
+followed by `Error establishing connection to database, aborting startup.` once the retries run out.
 
 Check that the database is running and reachable through any firewall between it and OIE, then confirm `database`, `database.url`, `database.username`, and `database.password` in `mirth.properties`. The account needs rights to create and alter tables on first start, not just to read and write. `database.connection.maxretry` and `database.connection.retrywaitinmilliseconds` control how hard the server tries before giving up.
 
@@ -103,13 +119,13 @@ Enable `database.enable-read-write-split` where a read replica exists, keep stat
 | Error | Cause | Where to look |
 |---|---|---|
 | `Address already in use` | Port conflict | Change the port or stop the conflicting process |
-| `Unable to connect to database` | Database unreachable or credentials wrong | `database.*` settings and network path |
+| `Error establishing connection to database` | Database unreachable or credentials wrong | `database.*` settings and network path |
 | `OutOfMemoryError` | Heap exhausted, or retained state | `-Xmx`, then map growth |
 | `SSLHandshakeException` | No protocol or cipher in common | `https.client.protocols`, `https.ciphersuites` |
 | `ConnectException: Connection refused` | Destination unreachable | Host, port, firewall |
 | `SocketTimeoutException` | Network or downstream timeout | Connector timeout settings |
-| `ScriptCompileException` | JavaScript syntax error | The script named in the message |
-| `TransformerException` | Runtime error in a transformer | Errors tab in the Message Browser |
+| `ScriptCompileException` | JavaScript syntax error | The four channel scripts of the channel id named in the message |
+| `MirthJavascriptTransformerException` | Runtime error in a filter or transformer script | Errors tab in the Message Browser |
 
 ## Getting help
 

@@ -27,7 +27,7 @@ For production deployments, it is recommended to use only database versions curr
 * Oracle
 * SQL Server
 
-These requirements govern only the database the server itself stores configuration and messages in. Channels can read from and write to any JDBC-accessible database, whatever its type or version. See [Database Support](./database_support.md) for changing the backing database and [Connector Reference](./connector_reference.md#database-jdbc) for the channel-side drivers.
+These requirements govern only the database the server itself stores configuration and messages in. Channels can read from and write to any JDBC-accessible database, whatever its type or version. See [Database Support](./database_support.md) for changing the backing database and [Connector Reference](./connector_reference_sources.md#jdbc-drivers-and-url-templates) for the channel-side drivers.
 
 ## Download and installation
 

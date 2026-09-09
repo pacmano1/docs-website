@@ -173,7 +173,7 @@ Select a connector message and use the **Messages** tab below the table to view 
 |---|---|
 | **Raw** | The original inbound message as stored after attachment extraction |
 | **Processed Raw** | The message after the preprocessor script has modified it |
-| **Transformed** | The internal (serialized) representation after the transformer has run |
+| **Transformed** | The internal representation of the message after the transformer has run |
 | **Encoded** | The final output after deserialization into the outbound data type |
 | **Sent** | The actual payload and connection properties captured just before dispatch (destination connectors only) |
 | **Response** | The reply from the external system (or the generated acknowledgment) |

@@ -78,4 +78,4 @@ Note these URLs, as you will need them later.
 
 When the server is up, see [Accessing the Administrator](./accessing_the_administrator.md).
 
-`oieserver.ps1` finds a Java runtime by checking, in order, the `OIE_JAVA_PATH` environment variable, a `-java-cmd` line in `oieserver.vmoptions` or a file it includes, `JAVA_HOME`, and finally `java` on the `PATH`.
+The launcher finds a Java runtime by checking, in order, the `OIE_JAVA_PATH` environment variable, a `-java-cmd` line in `oieserver.vmoptions` or a file it includes, `JAVA_HOME`, and finally `java` on the `PATH`. It takes the first entry that resolves to Java 17 or higher, except that a bad `OIE_JAVA_PATH` stops the launcher rather than falling through.

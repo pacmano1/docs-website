@@ -13,7 +13,7 @@ Before building, identify:
 
 1. **Source system** - Where messages come from
 2. **Message format** - HL7 v2.x, XML, JSON, etc.
-3. **Protocol** - TCP/MLLP, HTTP, file, database, etc.
+3. **Protocol** - TCP/[MLLP](./glossary.md#mllp), HTTP, file, database, etc.
 4. **Transformation requirements** - What needs to change
 5. **Destination system(s)** - Where messages go
 6. **Error handling** - What happens when delivery fails

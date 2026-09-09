@@ -87,7 +87,7 @@ var uuid = java.util.UUID.randomUUID().toString();
 ```
 
 ### What is E4X?
-ECMAScript for XML, the syntax used to read and modify message content when the data type is XML-serialized: HL7 v2.x, HL7 v3.x, XML, EDI/X12, NCPDP, Delimited Text, and DICOM. It is not universal. With the JSON data type `msg` and `tmp` are ordinary JavaScript objects, and with Raw they are Strings, so bracket paths do not apply. See [Data Types and Formats](./data_types_and_formats.md).
+ECMAScript for XML, the syntax used to read and modify message content when the data type is XML-based: HL7 v2.x, HL7 v3.x, XML, EDI/X12, NCPDP, Delimited Text, and DICOM. It is not universal. With the JSON data type `msg` and `tmp` are ordinary JavaScript objects, and with Raw they are Strings, so bracket paths do not apply. See [Data Types and Formats](./data_types_and_formats.md).
 
 ```javascript
 // Transformer, HL7 v2.x inbound data type
@@ -111,7 +111,7 @@ delete tmp['ZZ1'];
 HL7 v2.x, HL7 v3.x, DICOM, XML, JSON, EDI/X12, NCPDP, Delimited Text, and Raw. See [Data Types and Formats](./data_types_and_formats.md).
 
 ### Can I convert between data types in a single channel?
-Yes. Set different inbound and outbound data types per connector; the engine serializes at each boundary.
+Yes. Set different inbound and outbound data types per connector; the engine converts at each boundary.
 
 ## Performance
 

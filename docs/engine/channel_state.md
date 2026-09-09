@@ -24,8 +24,8 @@ For each channel:
 6. The four channel scripts are compiled.
 7. The global channel map is cleared, if the channel's setting asks for it.
 8. The deploy script runs. If it throws, the deploy fails and the channel is not deployed.
-9. Every connector is told it is deployed, the queues are attached to their database queries, and the custom metadata columns are reconciled with the channel's definition.
-10. The storage mode is checked against the queue settings; a channel whose mode cannot support its queues fails to deploy.
+9. The storage mode is checked against the queue settings; a channel whose mode cannot support its queues fails to deploy.
+10. The custom metadata columns are reconciled with the channel's definition, the queues are attached to their database queries, and every connector is told it is deployed.
 11. **Initial State** decides what happens next. Started: the channel is started. Paused: everything starts except the source connector. Stopped: nothing starts and the channel stays deployed but stopped.
 
 Message recovery, which picks up messages that were mid-flight when the engine last stopped, happens during start, not deploy. A channel deployed with Initial State Stopped recovers nothing until it is started.
@@ -61,7 +61,7 @@ The Dashboard allows a connector to be started or stopped on its own. For the so
 
 ## Undeploy
 
-Undeploying a channel stops it first, with the same wait for in-flight messages that Stop performs. The queues are not drained; their rows stay in the database and are picked up when the channel is deployed and started again. The connectors are told they are undeployed, the compiled scripts are discarded, and then the undeploy script runs. A failure in the undeploy script is logged and recorded as an event but does not stop the undeploy.
+Undeploying a channel stops it first, with the same wait for in-flight messages that Stop performs. The queues are not drained; their rows stay in the database and are picked up when the channel is deployed and started again. The connectors are told they are undeployed, the filter, transformer and response transformer objects are disposed, the undeploy script runs, and only then are the four compiled channel scripts discarded from the cache. A failure in the undeploy script is logged and recorded as an event but does not stop the undeploy.
 
 When several channels are undeployed together, a channel is undeployed before the channels it depends on, and the global undeploy script runs once at the end.
 

@@ -40,6 +40,7 @@ export default defineConfig({
           { text: 'Data Types and Formats', link: '/engine/data_types_and_formats' },
         ]
       },
+      { text: 'Glossary', link: '/engine/glossary' },
       {
         text: 'Getting Started',
         collapsed: true,
@@ -64,9 +65,16 @@ export default defineConfig({
         items: [
           { text: 'Channels and Connectors', link: '/engine/channels_and_connectors' },
           { text: 'Channel Development Guide', link: '/engine/channel_development_guide' },
-          { text: 'Connector Reference', link: '/engine/connector_reference' },
-          { text: 'Polling Settings', link: '/engine/polling_settings' },
           { text: 'Filters and Transformers', link: '/engine/filters_and_transformers' },
+        ]
+      },
+      {
+        text: 'Connectors',
+        collapsed: true,
+        items: [
+          { text: 'Sources', link: '/engine/connector_reference_sources' },
+          { text: 'Destinations', link: '/engine/connector_reference_destinations' },
+          { text: 'Polling Settings', link: '/engine/polling_settings' },
         ]
       },
       {
@@ -118,7 +126,7 @@ export default defineConfig({
         ]
       },
       {
-        text: 'Automation',
+        text: 'CLI and API',
         collapsed: true,
         items: [
           { text: 'Command Line Interface', link: '/engine/command_line_interface' },
@@ -131,7 +139,6 @@ export default defineConfig({
         items: [
           { text: 'Frequently Asked Questions', link: '/engine/frequently_asked_questions' },
           { text: 'Troubleshooting', link: '/engine/troubleshooting' },
-          { text: 'Glossary', link: '/engine/glossary' },
         ]
       },
       { text: 'Contributing', link: '/engine/contributing' },

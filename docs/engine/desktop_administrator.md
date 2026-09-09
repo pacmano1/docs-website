@@ -40,8 +40,8 @@ Opening a channel from the Channels view gives you a tabbed workspace:
 
 Within Source and Destinations you can open two editors:
 
-- **Filter Editor**, for rules (Rule Builder, JavaScript, External Script) joined by AND/OR. Matching messages are accepted, others rejected.
-- **Transformer Editor**, for a sequence of steps (Mapper, Message Builder, JavaScript, External Script, XSLT, Iterator, Destination Set Filter). Dragging a field between the inbound and outbound message trees generates a mapping step.
+- **Filter Editor**, for rules (Rule Builder, JavaScript, External Script, [Iterator](./glossary.md#iterator)) joined by AND/OR. Matching messages are accepted, others rejected.
+- **Transformer Editor**, for a sequence of steps ([Mapper](./glossary.md#mapper), [Message Builder](./glossary.md#message-builder), JavaScript, External Script, XSLT Step, Iterator, [Destination Set Filter](./glossary.md#destination-set)). Dragging a field between the inbound and outbound message trees generates a mapping step.
 
 A connector's filter and transformer are compiled into one script sharing one scope, which is why a value set in the filter is still there in the transformer. See [Filters and Transformers](./filters_and_transformers.md).
 
@@ -51,7 +51,7 @@ The tabs cover server-wide options:
 
 | Tab | Purpose |
 |---|---|
-| **Server** | Server name, usage statistics preference, default queue buffer size, default metadata columns, and SMTP configuration |
+| **Server** | Environment name and server name, both of which appear in the title bar, plus usage statistics preference, default queue buffer size, default metadata columns, and SMTP configuration |
 | **Administrator** | UI preferences such as dashboard refresh interval and confirmation dialog behavior |
 | **Tags** | Create and manage channel tags |
 | **Configuration Map** | Key-value pairs readable from channel scripts at runtime |
@@ -70,6 +70,8 @@ Below the view buttons, a fixed section of the left menu is available from every
 | **Notifications** | OIE release announcements from the project's GitHub repository. Unread items show a count badge |
 | **View User API** | Opens the User API (Javadoc) in your browser |
 | **View Client API** | Opens the REST API documentation in your browser |
+| **Visit homepage** | Opens the OIE project repository |
+| **Report Issue** | Opens the project's issue tracker |
 | **Help** | Opens the OIE GitHub discussions |
 | **About** | Version, build date, server ID, Java version, and third-party acknowledgements |
 | **Logout** | Ends the session and returns to the login screen |
@@ -83,5 +85,4 @@ Most screens present data in tables that behave the same way:
 - Click a header to sort ascending, again for descending. Not every table sorts.
 - Click the plus or minus beside a row to expand or collapse it, or right-click the header for Expand All and Collapse All.
 - Shift-click for a contiguous range of rows, Ctrl-click (Cmd on macOS) for individual ones.
-- Press Ctrl+F (Cmd+F) to open a find dialog that highlights matching rows.
 - Press Delete to remove a selected row, where the table allows it.

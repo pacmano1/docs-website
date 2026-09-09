@@ -90,4 +90,4 @@ The engine names its threads after the channel and connector they are working fo
 
 ## Where the threads live
 
-Every pool is per channel. The chain pool is created when the channel starts and shut down when it stops. Lifecycle tasks such as deploy, start, and stop run on one thread per channel, so tasks for the same channel run one after another while different channels proceed in parallel. There is no server-wide pool for message processing. The one server-wide limit is on removing all messages, which no more than two channels can be doing at once.
+Every pool is per channel. The chain pool is created when the channel starts and shut down when it stops. Lifecycle tasks such as deploy, start, and stop run on one thread per channel, so tasks for the same channel run one after another while different channels proceed in parallel. There is no server-wide pool for message processing. The one server-wide limit is on deleting messages: removing all of a channel's messages and deleting selected messages from the Message Browser share a two-permit semaphore, so no more than two such deletions run at once across the whole server.

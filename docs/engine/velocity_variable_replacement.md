@@ -27,7 +27,7 @@ When you reference `${variableName}`, OIE loads all variable maps into a single 
 2. **Connector Map** - Variables scoped to the current connector
 3. **Channel Map** - Variables scoped to the current message across all connectors
 4. **Source Map** - Variables populated by the source connector (e.g., remote address, original filename)
-5. **Global Channel Map** - Variables shared across all messages in this channel
+5. **[Global Channel Map](./glossary.md#global-channel-map)** - Variables shared across all messages in this channel
 6. **Global Map** - Variables shared across all channels
 7. **Configuration Map** - Server-wide key-value pairs from Settings
 

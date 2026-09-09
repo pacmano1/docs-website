@@ -94,7 +94,6 @@ Complete reference for all properties in `conf/mirth.properties`.
 | Property | Default | Description |
 |---|---|---|
 | `server.api.require-requested-with` | `true` | Require X-Requested-With header (protects against CSRF) |
-| `server.api.allowhttp` | `false` | Allow REST API access over HTTP (only applies when HTTP is enabled) |
 | `server.api.accesscontrolalloworigin` | `*` | CORS allowed origins |
 | `server.api.accesscontrolallowcredentials` | `false` | CORS allow credentials |
 | `server.api.accesscontrolallowmethods` | `GET, POST, DELETE, PUT` | CORS allowed methods |

@@ -5,7 +5,7 @@ description: Server API endpoints
 
 # REST API
 
-OIE exposes a REST API that powers the desktop Administrator, the Web Administrator, and the CLI. You can use it directly for custom integrations, automation, and monitoring.
+OIE exposes a REST API that powers the desktop Administrator, the Web Administrator, and the CLI. You can use it directly for custom integrations, automation, and monitoring. The engine serves its own endpoint reference, so the routes, parameters, and schemas are documented below under [Swagger / OpenAPI](#swagger-openapi) rather than repeated here.
 
 ## Base URL
 
@@ -13,7 +13,7 @@ OIE exposes a REST API that powers the desktop Administrator, the Web Administra
 https://<host>:8443/api
 ```
 
-The port comes from `https.port` and the prefix before `/api` from `http.contextpath`, both in `mirth.properties`; the defaults are shown. By default the API is served only over HTTPS (`server.api.allowhttp` also opens it on the HTTP port) and every request must be authenticated. All requests must also carry an `X-Requested-With` header for CSRF protection; any non-blank value is accepted (`server.api.require-requested-with`, default `true`).
+The port comes from `https.port` and the prefix before `/api` from `http.contextpath`, both in `mirth.properties`; the defaults are shown. The API is served over HTTPS, and every request must be authenticated. All requests must also carry an `X-Requested-With` header for CSRF protection; any non-blank value is accepted (`server.api.require-requested-with`, default `true`).
 
 ## Authentication
 
@@ -40,144 +40,6 @@ curl -k \
   -u admin:admin \
   https://localhost:8443/api/channels
 ```
-
-## API endpoints
-
-### Channels
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/channels` | List all channels |
-| `GET` | `/api/channels/{channelId}` | Get a specific channel |
-| `POST` | `/api/channels` | Create a new channel |
-| `PUT` | `/api/channels/{channelId}` | Update a channel |
-| `DELETE` | `/api/channels/{channelId}` | Delete a channel |
-
-### Channel deployment
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/channels/_redeployAll` | Redeploy all channels |
-| `POST` | `/api/channels/{channelId}/_deploy` | Deploy a single channel |
-| `POST` | `/api/channels/_deploy` | Deploy selected channels |
-| `POST` | `/api/channels/{channelId}/_undeploy` | Undeploy a single channel |
-| `POST` | `/api/channels/_undeploy` | Undeploy selected channels |
-
-### Channel status and control
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/channels/statuses` | Get all channel statuses |
-| `GET` | `/api/channels/{channelId}/status` | Get a single channel status |
-| `POST` | `/api/channels/{channelId}/_start` | Start a channel |
-| `POST` | `/api/channels/{channelId}/_stop` | Stop a channel |
-| `POST` | `/api/channels/{channelId}/_pause` | Pause a channel |
-| `POST` | `/api/channels/{channelId}/_resume` | Resume a channel |
-| `POST` | `/api/channels/{channelId}/_halt` | Halt a channel |
-| `POST` | `/api/channels/{channelId}/connector/{metaDataId}/_start` | Start a connector |
-| `POST` | `/api/channels/{channelId}/connector/{metaDataId}/_stop` | Stop a connector |
-
-### Channel groups
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/channelgroups` | List all channel groups |
-| `POST` | `/api/channelgroups/_bulkUpdate` | Update channel groups |
-
-### Channel statistics
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/channels/statistics` | Get statistics for all channels |
-| `GET` | `/api/channels/{channelId}/statistics` | Get statistics for a channel |
-| `POST` | `/api/channels/_clearStatistics` | Clear statistics for specific channels |
-| `POST` | `/api/channels/_clearAllStatistics` | Clear all statistics including lifetime |
-
-### Messages
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/channels/{channelId}/messages` | Search messages |
-| `GET` | `/api/channels/{channelId}/messages/{messageId}` | Get a specific message |
-| `POST` | `/api/channels/{channelId}/messages` | Send a new message |
-| `DELETE` | `/api/channels/{channelId}/messages` | Remove messages |
-| `POST` | `/api/channels/{channelId}/messages/_reprocess` | Reprocess messages |
-| `GET` | `/api/channels/{channelId}/messages/{messageId}/attachments` | Get message attachments |
-| `GET` | `/api/channels/{channelId}/messages/{messageId}/attachments/{attachmentId}` | Get a specific attachment |
-
-### Configuration
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/server/configuration` | Get full server configuration |
-| `PUT` | `/api/server/configuration` | Update server configuration |
-| `GET` | `/api/server/settings` | Get server settings |
-| `PUT` | `/api/server/settings` | Update server settings |
-| `GET` | `/api/server/configurationMap` | Get configuration map |
-| `PUT` | `/api/server/configurationMap` | Update configuration map |
-
-### Users
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/users` | List all users |
-| `GET` | `/api/users/{userIdOrName}` | Get a user by ID or username |
-| `POST` | `/api/users` | Create a user |
-| `PUT` | `/api/users/{userId}` | Update a user |
-| `DELETE` | `/api/users/{userId}` | Delete a user |
-| `PUT` | `/api/users/{userId}/password` | Change password |
-| `POST` | `/api/users/_login` | Log in |
-| `POST` | `/api/users/_logout` | Log out |
-
-### Alerts
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/alerts` | List all alerts |
-| `GET` | `/api/alerts/{alertId}` | Get a specific alert |
-| `POST` | `/api/alerts` | Create an alert |
-| `PUT` | `/api/alerts/{alertId}` | Update an alert |
-| `DELETE` | `/api/alerts/{alertId}` | Delete an alert |
-
-### Code templates
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/codeTemplateLibraries` | List code template libraries |
-| `GET` | `/api/codeTemplates` | List code templates |
-| `PUT` | `/api/codeTemplateLibraries` | Update libraries |
-
-### Events
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/events` | Search events |
-| `GET` | `/api/events/{eventId}` | Get a specific event |
-
-### Extensions
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/extensions/connectors` | List installed connector metadata |
-| `GET` | `/api/extensions/plugins` | List installed plugin metadata |
-| `GET` | `/api/extensions/{extensionName}` | Get extension metadata |
-| `GET` | `/api/extensions/{extensionName}/enabled` | Check if extension is enabled |
-| `POST` | `/api/extensions/{extensionName}/_setEnabled` | Enable or disable an extension |
-| `GET` | `/api/extensions/{extensionName}/properties` | Get extension properties |
-| `PUT` | `/api/extensions/{extensionName}/properties` | Set extension properties |
-
-### System
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/system/info` | Get system information |
-| `GET` | `/api/system/stats` | Get system statistics |
-
-### Database tasks
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/databaseTasks` | List database tasks |
 
 ## API documentation
 
