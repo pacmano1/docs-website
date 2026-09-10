@@ -59,11 +59,19 @@ Runs an insert, update, or delete against a database. Write it in SQL or build i
 
 | Setting | Default | Description |
 |---|---|---|
-| **Driver** | | JDBC driver. See [drivers and URL templates](./connector_reference_sources.md#jdbc-drivers-and-url-templates) |
+| **Driver** | Please Select One | JDBC driver. Required, JavaScript mode included. See [drivers and URL templates](./connector_reference_sources.md#jdbc-drivers-and-url-templates) |
 | **URL** | | JDBC connection URL |
 | **Username** / **Password** | | Database credentials |
 | **Use JavaScript** | No | Build the statement in JavaScript instead of SQL |
-| **SQL** / **JavaScript** | | The statement. **Generate** builds a starting statement from a table you pick |
+| **SQL** / **JavaScript** | | The statement. The **Generate** buttons above it build a starting statement, or in JavaScript mode a connection block, from the settings above |
+
+**JavaScript mode**
+
+As on the [Database Reader](./connector_reference_sources.md#database-reader), the connector opens no database connection in this mode and the script opens its own. **Driver** is required either way. The Administrator refuses to save while it reads *Please Select One*. **URL** is validated only when Use JavaScript is No, and the credentials are never validated. **Generate: Connection**, enabled only in this mode, pastes all four values, the password in plain text among them, into a connection block at the top of the script, and **Generate: Insert** inserts a `dbConn.executeUpdate(...)` line at the caret for the table you pick. Those values are string literals in the script from then on. Editing the fields does not change them, and the connector's own copies are never read at runtime.
+
+The generated block opens a connection and closes it in a `finally`, with nothing in between until you add the statements yourself. What the script returns decides the response: nothing at all is a SENT with *Database write success*, a `Response` is used as-is, a `Status` sets only the status, and anything else becomes the response data.
+
+Clicking the **Use JavaScript** radio rewrites the script field: Yes replaces its contents with the generated block, No empties it. Reopening a saved channel does not.
 
 ## DICOM Sender
 

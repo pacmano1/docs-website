@@ -44,7 +44,7 @@ Polls a database for a result set. Whether that set becomes one message or one m
 
 | Setting | Default | Description |
 |---|---|---|
-| **Driver** | | JDBC driver. See [drivers and URL templates](#jdbc-drivers-and-url-templates) |
+| **Driver** | Please Select One | JDBC driver. Required, JavaScript mode included. See [drivers and URL templates](#jdbc-drivers-and-url-templates) |
 | **URL** | | JDBC connection URL |
 | **Username** / **Password** | | Database credentials |
 | **Use JavaScript** | No | Build the query in JavaScript instead of SQL. Switches the **SQL** field below to **JavaScript** |
@@ -55,12 +55,37 @@ Polls a database for a result set. Whether that set becomes one message or one m
 | **# of Retries on Error** | 3 | Attempts after a failed poll before giving up |
 | **Retry Interval (ms)** | 10000 | Wait between those attempts |
 | **Encoding** | Default | Character set used to read column values |
-| **SQL** / **JavaScript** | | The select. **Generate** builds a starting statement from a table you pick |
+| **SQL** / **JavaScript** | | The select. The **Generate** buttons above it build a starting statement, or in JavaScript mode a connection block, from the settings above |
 | **Run Post-Process SQL** / **Run Post-Process Script** | Never | Never, After each message, or Once after all messages. Runs a second statement after the message has been processed. What that statement does is up to you |
 
 The select runs again on every poll, so unless something changes the data it reads or the query itself, the same rows come back.
 
-Choosing **Use JavaScript** disables three of the settings above: Keep Connection Open, Cache Results, and Fetch Size. A script builds and manages its own connection, so the connector does not manage one for it.
+**JavaScript mode**
+
+Choosing **Use JavaScript** disables three of the settings above: Keep Connection Open, Cache Results, and Fetch Size. The connector opens no database connection at all in this mode. The script opens its own, and has to return either a `ResultSet` or a `List<Map<String, Object>>`. A poll returning anything else fails.
+
+That connection still has to be built, and the four settings at the top of the connector are what build it. **Driver** is required whether or not you use a script: the Administrator refuses to save the channel while it reads *Please Select One*, and there is no blank option. **URL** is validated only when Use JavaScript is No, and Username and Password are never validated. All four feed the generators. **Generate: Connection**, enabled only in this mode, pastes their current values, the password in plain text among them, into a connection block at the top of the script.
+
+```javascript
+var dbConn;
+
+try {
+    dbConn = DatabaseConnectionFactory.createDatabaseConnection('<driver>','<url>','<username>','<password>');
+
+    // You may access this result below with $('column_name')
+    return result;
+} finally {
+    if (dbConn) {
+        dbConn.close();
+    }
+}
+```
+
+The block is not runnable as generated. `result` is never assigned, so returning it fails the poll until you add the query yourself. **Generate: Select** is what adds it: it opens a live connection using those same four settings, which makes it the one place they are checked before a deploy, and inserts a `dbConn.executeCachedQuery(...)` line at the caret for the table you pick. The Post-Process JavaScript field has its own pair of buttons that do the same with `executeUpdate`.
+
+Once generated, the driver, URL and credentials are string literals in the script. Editing the fields afterwards does not change them, and it is the literal in the script that decides what connects. The connector's own copies are never read at runtime.
+
+Clicking the **Use JavaScript** radio rewrites both script fields: Yes replaces their contents with the generated block, No empties them. Reopening a saved channel does not, so this only bites while editing.
 
 ## DICOM Listener
 
@@ -139,16 +164,22 @@ The rest of the panel, in the order it appears:
 | **Passive Mode** | Yes | FTP passive transfers. FTP only |
 | **Validate Connection** | Yes | Test the connection before each poll. FTP only |
 | **After Processing Action** | None | None, Move, or Delete. None leaves the file in place, so the next poll reads it again |
-| **Move-to Directory** / **Move-to File Name** | | Where a moved file goes |
+| **Move-to Directory** / **Move-to File Name** | | Where a moved file goes, on the source itself. A blank directory leaves the file where it is, a blank file name keeps the original one, and an existing file at the destination is deleted first |
 | **Error Reading Action** | None | None, Move, or Delete, for a file that could not be read |
 | **Error in Response Action** | After Processing | What to do with a file whose message ended in an error response |
-| **Error Move-to Directory** / **Error Move-to File Name** | | Destination for either error action |
+| **Error Move-to Directory** / **Error Move-to File Name** | | Destination for either error action, on the source, under the same rules |
 | **Check File Age** | Yes | Skip files younger than **File Age** |
 | **File Age (ms)** | 1000 | Minimum age before a file is read |
 | **File Size (bytes)** | 0, no maximum | Minimum and maximum a file must fall between. **Ignore Maximum** leaves the upper bound open, and is checked by default |
 | **Sort Files By** | Date | Date, Name, or Size. Decides the order files are processed in |
 | **File Type** | Text | Text or Binary. Binary base64 encodes the content |
 | **Encoding** | Default | Character set, Text only |
+
+::: warning The move-to directory is on the source, not on the OIE server
+A move runs over the same connection the file was read from. The connector asks the source for a connection and renames the file on it, so the destination is wherever **Method** points. Read over SFTP and the move-to directory is a directory on the SFTP server. Read over FTP it is on the FTP server, and over SMB it is a path on the same share. Nothing is copied back to the OIE server on the way. The same goes for **Error Move-to Directory**, and for the Delete actions, which delete on the remote side. Only Method `file` moves anything on the OIE server's own disk, and only because that is where it read from.
+
+Relative paths resolve differently per method. FTP and SFTP change to the read directory first, so a path with no leading `/` is taken relative to the directory being read, and a leading `/` is absolute on the remote host. SMB resolves the path against the share root. S3 reads the field as a bucket and a prefix, which is why it is labelled **Move-to S3 Bucket / Directory** and why a move can cross buckets. Backslashes typed into either move-to directory field are converted to forward slashes when the channel is saved. A move-to directory that does not exist is created.
+:::
 
 **Advanced Options** opens a per-protocol dialog, and the read-only summary beside **Method** shows what is set in it. See [file protocol advanced settings](#file-protocol-advanced-settings).
 
@@ -158,7 +189,7 @@ Serves HTTP requests. Default port **80**, and the **HTTP URL** / **HTTPS URL** 
 
 | Setting | Default | Description |
 |---|---|---|
-| **Base Context Path** | | Path this connector answers on |
+| **Base Context Path** | | Path this connector answers on. Blank means the root, not nothing. See below |
 | **Receive Timeout (ms)** | 30000 | Idle timeout for a request |
 | **Message Content** | Plain Body | Plain Body passes the body through. XML Body wraps method, headers, parameters, and body in XML |
 | **Parse Multipart** | Yes | Split a multipart request into parts. XML Body only |
@@ -170,6 +201,10 @@ Serves HTTP requests. Default port **80**, and the **HTTP URL** / **HTTPS URL** 
 | **Response Headers** | | Headers to return. **Use Map** takes them from a map variable instead of the table |
 | **Charset Encoding** | UTF-8 | Character set. Disabled when **Response Data Type** is Binary |
 | **Static Resources** | | Paths served directly by the connector, each with its own content type and value, without producing a message |
+
+**Base Context Path** is blank out of the box, and blank is the root. The engine normalizes it before Jetty sees it: a leading slash is added if you left it off, and a trailing slash is stripped, so `orders`, `/orders`, and `/orders/` all give the same context, and blank and `/` are the same thing. A listener answers its context path and everything below it, so at the root it answers every request that reaches its port.
+
+That is not the collision it sounds like. Each HTTP Listener builds its own server bound to its own host and port, so two channels cannot share a port and divide it by context path. The path separates the connector from nothing else on that port, which is why leaving it at the root is a reasonable default rather than a greedy one. Static resource paths are appended to the base, and the **HTTP URL** field on the panel shows the address that results.
 
 Authentication is a separate plugin; see [HTTP authentication](#http-authentication).
 

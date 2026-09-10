@@ -42,7 +42,7 @@ From the CLI: `user changepw admin "newpassword"`.
 ## Channels
 
 ### What is a channel?
-The fundamental processing unit: how messages are received (source connector), how they are transformed, and where they are sent (destination connectors). See [Channels and Connectors](./channels_and_connectors.md).
+The fundamental processing unit: how messages are received (source connector), how they are transformed, and where they are sent (destination connectors). See [Channels](./channels.md).
 
 ### How many destinations can a channel have?
 No hard limit. Destinations process in order by default and can be configured to run in parallel.

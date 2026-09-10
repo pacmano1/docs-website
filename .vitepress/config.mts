@@ -63,7 +63,7 @@ export default defineConfig({
         text: 'Channels',
         collapsed: true,
         items: [
-          { text: 'Channels and Connectors', link: '/engine/channels_and_connectors' },
+          { text: 'Channels', link: '/engine/channels' },
           { text: 'Channel Development Guide', link: '/engine/channel_development_guide' },
           { text: 'Filters and Transformers', link: '/engine/filters_and_transformers' },
         ]

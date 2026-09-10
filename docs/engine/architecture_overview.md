@@ -54,7 +54,7 @@ The **attachment handler** is a channel setting rather than a connector one, but
 
 For example, you may receive data over HTTP, then write it out to a file **and** insert pieces of it into a database.
 
-See [Channels and Connectors](./channels_and_connectors.md), and [Source Connectors](./connector_reference_sources.md) and [Destination Connectors](./connector_reference_destinations.md) for what each type exposes.
+See [Channels](./channels.md), and [Source Connectors](./connector_reference_sources.md) and [Destination Connectors](./connector_reference_destinations.md) for what each type exposes.
 
 ### Filters
 

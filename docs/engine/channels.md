@@ -1,15 +1,25 @@
 ---
-title: Channels and Connectors
+title: Channels
 description: The fundamental building blocks
 ---
 
-# Channels and Connectors
+# Channels
 
-Channels are the primary building blocks in OIE. A channel represents a complete integration workflow. It defines where data comes from, how it gets transformed, and where it ultimately goes.
+Channels are the primary building blocks in OIE. A channel defines where data comes from, how it gets transformed, and where it ultimately goes.
+
+## Channel lifecycle
+
+You create and edit a channel in the channel editor. Your changes stay in the editor until you save. Saving stores the channel on the server. A saved channel does not process messages.
+
+Deploying turns the saved channel into a running one. The scripts are compiled, the connectors are created, and **Initial State** decides whether the channel comes up started, paused, or stopped. The engine does not read the saved channel again, so an edit you make after that does nothing until the next deploy.
+
+Start, pause, and stop apply to a deployed channel. Undeploying undoes the deploy. The saved channel stays on the server. Deleting removes the saved channel.
+
+[Deploy, Start, and Channel State](./channel_state.md) has the detail.
 
 ## About channels and connectors
 
-A channel is made up of **connectors**. There are two kinds: a **source connector** brings data into OIE, while a **destination connector** pushes data out to an external system. Every channel has one source connector and one or more destinations. This means a single channel can take data from one place and deliver it to several different targets. For instance, receiving an HL7 message over TCP and simultaneously writing it to a file and inserting selected fields into a database.
+A channel is made up of **connectors**. There are two kinds: a **source connector** brings data into the channel, and a **destination connector** sends it back out. Neither end has to be an external system. A Channel Reader receives messages from another channel. A Channel Writer sends messages to another channel. A JavaScript Writer runs a script, which need not send the message anywhere at all. Every channel has one source connector and one or more destinations. This means a single channel can take data from one place and deliver it to several different targets. For instance, receiving an HL7 message over TCP and simultaneously writing it to a file and inserting selected fields into a database.
 
 ```text
 ┌────────────────────────────────────────────────────────────┐
@@ -30,7 +40,7 @@ The filters and transformers are drawn once here for simplicity. Every connector
 
 These are configured on the Summary tab of the channel editor and cover the overall behavior of the channel:
 
-- **Unique ID, name, and description**
+- **Name and description**. The channel's unique ID is assigned automatically, not entered
 - **Code Template Libraries**. Controls which reusable JavaScript functions are accessible within the channel
 - **Library Resources**. Specifies which custom Java classes can be referenced by the channel's connectors or scripts
 - **Deploy/Start Dependencies**. Lets you define ordering relationships between channels so certain channels come online before others
@@ -51,11 +61,13 @@ Each channel has exactly one source connector responsible for bringing data into
 
 ## Destination connectors
 
-A channel needs at least one destination connector to deliver data outward. Destinations also have some features beyond the standard filter and transformer:
+A channel has at least one destination connector, and at least one of them has to be enabled. That does not make destinations the only way data leaves a channel. A script anywhere in the channel can send data out on its own, and a source-side one does it before any destination is reached.
 
-- **Enabled**. A toggle that controls whether the destination participates in processing. At least one destination must remain enabled at all times.
+How many destinations a given message reaches is anywhere from none of them to all of them. The [destination set](./glossary.md#destination-set) decides which ones it is queued for, and each destination's own filter can still drop it after that. Destinations have a few features beyond the standard filter and transformer:
+
+- **Enabled**. Whether the destination takes part in processing. A disabled one is skipped entirely.
 - **Wait for previous destination**. Determines which **chain** the destination belongs to (see [Destination Chains](#destination-chains) below).
-- **Response Transformer**. A secondary transformer that operates on the reply received from the external system rather than the outbound message itself. It has its own pair of data types (response inbound and response outbound). A destination response includes the response data, the **status** (e.g. SENT, ERROR), a **status message**, and an **error message**. The response transformer can modify all of these. For example, overriding an ERROR status to SENT based on custom logic, or forcing a message into the queue. Note that response transformers only execute when there is an actual response payload to transform (e.g. they will not run if a connection to the remote server fails entirely). The exception is when the response inbound data type is set to Raw, in which case the response transformer always executes regardless of whether a response payload exists.
+- **Response Transformer**. A second transformer that runs on the reply the destination got back, not on the message it sent. It has its own inbound and outbound data types. It can rewrite the response data, and it can set the response's status, status message, and error message. It runs only when a reply actually came back, so a destination that failed to connect skips it. The exception is a response inbound data type of **Raw**, which runs it either way.
 
 ## Channel scripts
 
@@ -64,7 +76,7 @@ Each channel has four configurable scripts that run at specific points in the li
 | Script | When It Runs |
 |---|---|
 | **Deploy Script** | Executes once immediately before the channel is deployed |
-| **Preprocessor Script** | Fires for each message, after the source connector receives it and after any attachment extraction, but before filtering and transformation begin. Used to modify the raw message. |
+| **Preprocessor Script** | Fires for each message, after the source connector receives it and after any attachment extraction, but before filtering and transformation begin. Used to modify the raw message. A common use is stripping a byte order mark (BOM) from the front of the message before the engine parses it. |
 | **Postprocessor Script** | Fires for each message after the source and all destinations have finished (not counting asynchronous queue processing), but before the source connector sends its response. Has access to destination responses and can return a custom reply for the source to use. |
 | **Undeploy Script** | Executes once after the channel is undeployed |
 
@@ -82,7 +94,11 @@ The configuration fields vary by connector type. A TCP Listener has completely d
 
 ### Filter
 
-Evaluates incoming messages and decides whether they should continue through the pipeline. See [Filters and Transformers](./filters_and_transformers.md) for details.
+A filter decides whether a message goes on. Whatever you build in the filter editor becomes plain JavaScript, and the **Generated Script** tab shows you exactly what it built. The one requirement is that the script returns true or false.
+
+That requirement is what separates a filter from a transformer. Code you would write in a transformer step also runs in a filter rule. It can set a map variable, reshape the message, or call a code template.
+
+See [Filters and Transformers](./filters_and_transformers.md) for details.
 
 ### Transformer
 
@@ -90,7 +106,13 @@ Modifies messages, converts between formats, and extracts values for use in temp
 
 ## Destination chains
 
-Destinations within a channel are organized into **chains**. Chains run in parallel with each other, but within a single chain, destinations are processed sequentially. A destination whose **Wait for previous destination** setting is unchecked marks the beginning of a new chain. The first destination in a channel always starts the first chain. See [Threading and Ordering](./threading_and_ordering.md).
+Chains are a byproduct of the **Wait for previous destination** checkbox on each destination.
+
+It sits on the **Destinations** tab beside the connector type dropdown, and applies to the destination selected in the table above it. If it is checked, the destination joins the chain of the destination above it. If it is cleared, the destination starts a new chain. On the first destination it is cleared and greyed out, because the first destination always starts the first chain.
+
+Chains run concurrently. Within a chain, destinations run one at a time, in order.
+
+The engine builds the chains when the channel deploys, reading the destination list from top to bottom and skipping disabled destinations. Reordering the list changes the chains. So does disabling a destination: disable the one that starts a chain and the destinations below it join the chain above.
 
 For example, with 5 destinations where Destination 3 does not wait on Destination 2 (starting a new chain):
 
@@ -119,7 +141,7 @@ Here, Chain 1 (Dest 1 and 2) and Chain 2 (Dest 3, 4, and 5) run concurrently. If
 
 ## Channel groups
 
-Channels can be sorted into **groups** for organizational purposes. Groups have no effect on processing behavior.
+Channels can be organized into **groups**. Groups have no effect on processing behavior.
 
 - Create groups in the Channels panel
 - Drag and drop channels between groups
@@ -132,38 +154,10 @@ Channels can be sorted into **groups** for organizational purposes. Groups have 
 | **Started** | Channel is actively processing messages |
 | **Stopped** | Channel is deployed but not processing |
 | **Paused** | Channel is deployed, source is paused (queued messages still process) |
-| **Undeployed** | Channel exists but is not loaded into the engine |
+| **Undeployed** | Saved on the server, not running |
 
 ## Connector types
 
-See [Source Connectors](./connector_reference_sources.md) and [Destination Connectors](./connector_reference_destinations.md) for every setting each type exposes.
-
-### Source connectors
-| Connector | Protocol/Method |
-|---|---|
-| Channel Reader | Internal channel-to-channel |
-| DICOM Listener | DICOM protocol |
-| Database Reader | JDBC polling |
-| File Reader | File/FTP/SFTP/S3/SMB/WebDAV |
-| HTTP Listener | HTTP/HTTPS |
-| JMS Listener | Java Message Service |
-| JavaScript Reader | Custom scripted source |
-| TCP Listener | TCP/MLLP |
-| Web Service Listener | SOAP/WSDL |
-
-### Destination connectors
-| Connector | Protocol/Method |
-|---|---|
-| Channel Writer | Internal channel-to-channel |
-| DICOM Sender | DICOM protocol |
-| Database Writer | JDBC insert/update |
-| Document Writer | PDF/RTF document generation |
-| File Writer | File/FTP/SFTP/S3/SMB/WebDAV |
-| HTTP Sender | HTTP/HTTPS |
-| JMS Sender | Java Message Service |
-| JavaScript Writer | Custom scripted destination |
-| SMTP Sender | Email |
-| TCP Sender | TCP/MLLP |
-| Web Service Sender | SOAP/WSDL |
+See [Source Connectors](./connector_reference_sources.md) and [Destination Connectors](./connector_reference_destinations.md) for every type and every setting it exposes.
 
 Additional connectors are available as community extensions, cataloged at [openintegrationengine.org/plugins](https://openintegrationengine.org/plugins/). See the [Plugin Guide](./plugins.md) for installing them.

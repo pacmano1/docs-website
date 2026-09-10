@@ -7,29 +7,13 @@ description: What the engine does with a message from receipt to response, which
 
 A message in OIE is one unit of data travelling through a channel. The engine records it as one message row plus one connector message per connector it passes through: a channel with a source and two destinations writes three connector messages for every inbound message. Each connector message has its own status, its own timestamps, and its own set of stored content, which is why the Message Browser can show the raw, transformed, encoded, and sent forms of the same message side by side.
 
-What the engine stores at each step depends on the channel's message storage mode, and what it stores determines what it can recover after a crash, what it can queue, and what the Message Browser can show. This page walks the processing path once, in order, then describes the statuses, the content types, the storage modes, and the two mechanisms that remove data.
+What the engine stores at each step depends on the channel's message storage mode, and what it stores determines what it can recover after a crash, what it can queue, and what the Message Browser can show. This page describes the statuses, walks the processing path once in order, then covers the content types, the storage modes, what the database holds, and the two mechanisms that remove data.
 
 ## Messages and connector messages
 
 A single inbound payload does not always become a single message. When the source connector's batch processor is on, one file or stream can be split into many messages, each with its own id. See [Batch processing](#batch-processing).
 
 Connector messages are numbered by **metadata id**. The source connector is always 0. Destinations are numbered from 1 in the order they were added to the channel.
-
-## What the database holds
-
-Every channel gets its own set of tables, named with a local channel id that the `D_CHANNELS` table maps to the channel's id.
-
-| Table | Contents |
-|---|---|
-| `d_m` | One row per message: server id, received date, whether processing finished, and the original and import ids for reprocessed and imported messages |
-| `d_mm` | One row per connector message: status, connector name, received, send, and response dates, send attempts, chain and order ids |
-| `d_mc` | Every stored content, map, and error, one row per content type per connector message |
-| `d_mcm` | Custom metadata columns, one real database column per configured column |
-| `d_ma` | Attachments |
-| `d_ms` | Received, filtered, sent, and errored counts per connector, current and lifetime |
-| `d_msq` | The sequence that issues message ids |
-
-A destination's Raw content is never written. It is always the source's Encoded content, and the engine reads that row back when it needs it.
 
 ## Statuses
 
@@ -58,13 +42,13 @@ A message is **complete** when every one of its connector messages is FILTERED, 
 3. The message row and the source connector message are written, with the source map. What remains after attachment extraction is stored as **Raw**.
 4. The engine commits. With the source queue on, it responds to the sender here and a source queue thread continues later. With the source queue off, the receiving thread continues at once.
 5. The preprocessor script runs. Its output becomes **Processed Raw**.
-6. The source filter and transformer run. The inbound data type serializes the content to its internal form, which is stored as **Transformed**; the filter accepts or rejects; the transformer steps run; the outbound data type produces **Encoded**.
+6. The source filter and transformer run. The engine serializes the content to its internal form using the inbound data type, and stores that as **Transformed**; the filter accepts or rejects; the transformer steps run; the engine produces **Encoded** using the outbound data type.
 7. The source connector message's status, custom metadata columns, and maps are written. A filtered or errored message skips to the final steps.
 8. Processed Raw, Transformed, and Encoded are written, subject to the storage mode.
 9. One connector message is created for the first destination in each chain, each holding a copy of the source's channel map and response map. The chains then run: all chains at the same time, each chain's destinations one after another. See [Threading and Ordering](./threading_and_ordering.md).
 
 ::: info
-A connector with no filter and no transformer has no Transformed content. Its Encoded content is the raw content, unchanged apart from any adjustment the data type makes without serializing. This shortcut applies only when the inbound and outbound data types are the same.
+A connector with no filter and no transformer has no Transformed content. Its Encoded content is the raw content, unchanged apart from any adjustment the engine makes from the data type's properties without serializing. This shortcut applies only when the inbound and outbound data types are the same.
 :::
 
 ### For each destination
@@ -93,15 +77,15 @@ When the source queue is on, steps 16 to 18 still happen, on the source queue th
 |---|---|
 | **Raw** | The inbound message after attachment extraction, before the preprocessor |
 | **Processed Raw** | The preprocessor's output |
-| **Transformed** | The internal representation, usually XML, produced by the inbound data type |
-| **Encoded** | The outbound form produced by the outbound data type after the transformer |
+| **Transformed** | The internal representation, usually XML, the engine produces using the inbound data type |
+| **Encoded** | The outbound form the engine produces using the outbound data type after the transformer |
 | **Response** | What was returned to the sender |
 
 ### Destination connector
 
 | Content | What it holds |
 |---|---|
-| **Raw** | Always the source's Encoded content. Not stored separately |
+| **Raw** | Always the source's Encoded content. Not stored separately; the engine reads the source's row when it needs it |
 | **Transformed** | The internal representation produced by the destination's inbound data type |
 | **Encoded** | The destination's outbound form after its transformer |
 | **Sent** | The connector's outgoing content as built for the send, including its properties, written before the send |
@@ -156,6 +140,20 @@ Attachments follow the channel's own attachment setting in every mode except Dis
 **Recovery on start** is the engine picking up messages that were mid-flight when it stopped: source messages still in RECEIVED, messages whose destinations never finished, and destinations in PENDING. It runs only in Development and Production. In the other modes the engine logs that incomplete messages exist and skips them.
 
 **Disabled** replaces the storage layer with one that writes nothing. Statistics still update. Nothing else about the message reaches the database, so the Message Browser is empty and neither queueing nor recovery is possible.
+
+## What the database holds
+
+Every channel gets its own set of tables, named with a local channel id that the `D_CHANNELS` table maps to the channel's id.
+
+| Table | Contents |
+|---|---|
+| `d_m` | One row per message: server id, received date, whether processing finished, and the original and import ids for reprocessed and imported messages |
+| `d_mm` | One row per connector message: status, connector name, received, send, and response dates, send attempts, chain and order ids |
+| `d_mc` | Every stored content, map, and error, one row per content type per connector message |
+| `d_mcm` | Custom metadata columns, one real database column per configured column |
+| `d_ma` | Attachments |
+| `d_ms` | Received, filtered, sent, and errored counts per connector, current and lifetime |
+| `d_msq` | The sequence that issues message ids |
 
 ## Removing content on completion
 
