@@ -5,7 +5,7 @@ description: How to upgrade to a newer version
 
 # Upgrade Guide
 
-This guide covers how to upgrade your OIE installation to a newer version.
+This guide covers how to upgrade your OIE installation to a newer version. To move an existing Mirth Connect server onto OIE, see [Migrating from Mirth Connect](./migrating_from_mirth_connect.md).
 
 ## Before you upgrade
 

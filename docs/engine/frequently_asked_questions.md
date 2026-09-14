@@ -8,7 +8,7 @@ description: Short answers to the questions that come up most often, with links 
 ## General
 
 ### What is the relationship between OIE and Mirth Connect?
-OIE is an open-source fork of Mirth Connect, created after Mirth Connect moved to a proprietary model. It continues under the Mozilla Public License 2.0.
+OIE is an open-source fork of Mirth Connect, created after Mirth Connect moved to a proprietary model. It continues under the Mozilla Public License 2.0. See [Migrating from Mirth Connect](./migrating_from_mirth_connect.md) to move an existing server.
 
 ### What Java version is required?
 Java 17 or later.

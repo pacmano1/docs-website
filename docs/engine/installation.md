@@ -125,3 +125,4 @@ Runtime-created directories such as `appdata/` are kept when the installer runs 
 * [Server Process Management](./server_process_management.md) to start it.
 * [Accessing the Administrator](./accessing_the_administrator.md) to log in.
 * [Database Support](./database_support.md) to move off Derby before production.
+* [Migrating from Mirth Connect](./migrating_from_mirth_connect.md) if you are replacing an existing Mirth Connect server.

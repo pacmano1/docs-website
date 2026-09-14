@@ -51,6 +51,16 @@ export default defineConfig({
         ]
       },
       {
+        text: 'Migrating from Mirth Connect',
+        link: '/engine/migrating_from_mirth_connect',
+        collapsed: true,
+        items: [
+          { text: 'Linux', link: '/engine/migrating_linux' },
+          { text: 'Windows', link: '/engine/migrating_windows' },
+          { text: 'macOS', link: '/engine/migrating_macos' },
+        ]
+      },
+      {
         text: 'Administrators',
         collapsed: true,
         items: [
